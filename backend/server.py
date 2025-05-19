@@ -2,56 +2,57 @@
 Servidor principal de la aplicación MCP (Model Context Protocol).
 Configura el ciclo de vida de la aplicación y registra las herramientas disponibles.
 """
+
 import logging
-from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator
-import asyncpg
+from backend.core.database import database
 from mcp.server.fastmcp import FastMCP
+from backend.api.v1.tools.client_tools import register_tools
+from fastapi import APIRouter, HTTPException
+
+# Router para endpoints de health
+health_router = APIRouter(prefix="/health", tags=["health"])
+
+
+@health_router.get("/")
+async def health_check():
+    """
+    Endpoint de healthcheck que verifica el estado del servidor y la base de datos.
+    """
+    try:
+        async with database.connection() as conn:
+            # Verifica que la conexión a la base de datos funcione
+            await conn.fetchval("SELECT 1")
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
 
 # Configuración de logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)  # Configura el nivel de logging
+logger = logging.getLogger(__name__)  # Crea un logger para este módulo
 
-# Importaciones locales
-from backend.core.config import settings
-from backend.api.tools.client_tools import register_tools
 
 # Ciclo de vida MCP: gestiona una pool de PostgreSQL compartida
-@asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[asyncpg.Pool]:
+async def app_lifespan(server: FastMCP):
     """
     Context manager para el ciclo de vida de la aplicación.
     Gestiona la conexión a la base de datos PostgreSQL.
     """
     logger.info("⏳ Conectando a PostgreSQL…")
     try:
-        pool = await asyncpg.create_pool(
-            dsn=settings.DATABASE_URL,
-            min_size=1,
-            max_size=10,
-            command_timeout=60
-        )
-        if not pool:
-            raise RuntimeError("No se pudo conectar a la base de datos")
-            
+        # Crear pool de conexiones
+        await database.connect()
         logger.info("✅ Conexión a PostgreSQL establecida")
-        yield pool
-        
+        yield database._pool
     except Exception as e:
         logger.error(f"❌ Error al conectar con PostgreSQL: {e}")
         raise
-        
     finally:
-        if 'pool' in locals() and pool:
-            logger.info("🛑 Cerrando pool de conexiones PostgreSQL…")
-            await pool.close()
+        await database.disconnect()
+
 
 # Instancia principal de FastMCP
-mcp = FastMCP(
-    name="AI-Client-Agent-MCP",
-    lifespan=app_lifespan,
-    dependencies=["asyncpg"],
-)
+mcp = FastMCP(name="AI-Client-Agent-MCP", lifespan=app_lifespan, routes=[health_router])
 
 # Registrar tools
 register_tools(mcp)

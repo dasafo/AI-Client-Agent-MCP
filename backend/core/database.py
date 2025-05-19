@@ -1,9 +1,7 @@
-# Importaciones necesarias para la gestión de la base de datos asíncrona
 import asyncpg
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Optional
 
-# Importamos la configuración de la aplicación
 from .config import settings
 
 class Database:

@@ -13,4 +13,3 @@ black>=23.0.0  # Formateador de código
 isort>=5.0.0  # Ordenar importaciones
 flake8>=6.0.0  # Linter
 mypy>=1.0.0  # Chequeo de tipos estáticos
-python-dotenv

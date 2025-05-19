@@ -3,127 +3,143 @@
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Agente de gestión de clientes compatible con el protocolo MCP (Model Context Protocol).
+Client management agent compatible with the MCP (Model Context Protocol).
 
-## ✨ Características
+## What is MCP and why use it?
 
-- ✅ Gestión completa de clientes (CRUD)
-- 🚀 API RESTful basada en FastAPI
-- 🗃️ Base de datos PostgreSQL
-- 🔄 Compatible con Cursor, Windsurf, Claude y otros agentes MCP modernos
-- 🔐 Autenticación y autorización integradas
-- 📊 Validación de datos con Pydantic
-- ⚡ Asíncrono y de alto rendimiento
+**MCP (Model Context Protocol)** is an open protocol for tool-augmented AI agents. It allows agents (like Cursor, Claude, Windsurf, etc.) to interact with external tools and APIs in a standardized way. By using MCP, this project can be easily integrated with modern AI assistants and developer tools, enabling automation, advanced workflows, and seamless interoperability.
 
-## 📦 Estructura del Proyecto
+## ✨ Features
+
+- ✅ Full client management (CRUD)
+- 🚀 RESTful API based on FastAPI
+- 🗃️ PostgreSQL database
+- 🔄 Compatible with Cursor, Windsurf, Claude, and other modern MCP agents
+- 📊 Data validation with Pydantic
+- ⚡ Asynchronous and high performance
+
+## ⚠️ Authentication Notice
+
+**Authentication and authorization are NOT implemented in this demo.**
+
+To add authentication, you could:
+- Integrate OAuth2/JWT with FastAPI's security utilities
+- Add API key checks in the MCP tool endpoints
+- Use a reverse proxy (e.g., Traefik, Nginx) for access control
+
+## 📦 Project Structure
 
 ```
 AI-Client-Agent-MCP/
-├── .env                    # Variables de entorno (crear manualmente)
-├── requirements.txt        # Dependencias de Python
-├── backend/                # Código fuente del backend
-│   ├── __init__.py         # Paquete Python
-│   ├── server.py           # Punto de entrada de la aplicación
+├── .env                    # Environment variables (create manually)
+├── requirements.txt        # Python dependencies
+├── backend/                # Backend source code
+│   ├── __init__.py         # Python package
+│   ├── server.py           # Application entry point
 │   │
-│   ├── api/               # Capa de API
+│   ├── api/               # API layer
 │   │   └── tools/
-│   │       └── client_tools.py  # Endpoints MCP
+│   │       └── client_tools.py  # MCP endpoints
 │   │
-│   ├── models/           # Modelos de datos
-│   │   └── client.py       # Modelos Pydantic
+│   ├── models/           # Data models
+│   │   └── client.py       # Pydantic models
 │   │
-│   ├── services/         # Lógica de negocio
+│   ├── services/         # Business logic
 │   │   └── client_service.py
 │   │
-│   └── core/            # Utilidades y configuraciones
+│   └── core/            # Utilities and config
 │       ├── __init__.py
-│       ├── config.py       # Configuración de la app
-│       └── database.py     # Conexión a la base de datos
+│       ├── config.py       # App configuration
+│       └── database.py     # Database connection
 └── README.md
 ```
 
-## 🔄 Flujo de la Aplicación
+## 🔄 Application Flow
 
-1. `server.py` inicia la aplicación MCP
-2. Las peticiones llegan a los endpoints en `api/tools/`
-3. Las herramientas utilizan los servicios para la lógica de negocio
-4. Los servicios interactúan con la base de datos
-5. Los modelos validan los datos en cada paso
+1. `server.py` starts the MCP application
+2. Requests arrive at endpoints in `api/tools/`
+3. Tools use services for business logic
+4. Services interact with the database
+5. Models validate data at each step
 
-## 🛠️ Instalación
+## 🛠️ Installation
 
-1. Clona el repositorio:
+1. Clone the repository:
    ```bash
    git clone https://github.com/dasafo/AI-Client-Agent-MCP.git
    cd AI-Client-Agent-MCP
    ```
 
-2. Crea un entorno virtual (recomendado):
+2. Create a virtual environment (recommended):
    ```bash
    python -m venv venv
-   source venv/bin/activate  # En Windows: venv\Scripts\activate
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. Instala las dependencias:
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Configura el archivo .env:
+4. Configure the .env file:
    ```bash
    cp .env.example .env
-   # Edita el archivo .env con tus credenciales
+   # Edit the .env file with your credentials
    ```
 
-5. Inicia el servidor:
+5. Start the server:
    ```bash
    python -m backend.server
    ```
 
-## ⚙️ Configuración
+## ⚙️ Configuration
 
-Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
+Create a `.env` file in the project root with the following variables:
 
 ```env
-# Aplicación
+# Application
 APP_ENV=development
 APP_DEBUG=True
-APP_SECRET_KEY=tu_clave_secreta_aqui
+APP_SECRET_KEY=your_secret_key_here
 
-# Base de datos
+# Database
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=tu_contraseña
+POSTGRES_PASSWORD=your_password
 POSTGRES_SERVER=localhost
 POSTGRES_PORT=5432
-POSTGRES_DB=nombre_bd
+POSTGRES_DB=your_db_name
 
-# URL de conexión (se genera automáticamente)
+# Connection URL (auto-generated)
 DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
 ```
 
-## 🚀 Uso
+## 🚀 Usage
 
-### Ejecutar el servidor
+### Run the server
 
 ```bash
 python -m backend.server
 ```
 
-### Ejecutar pruebas
+### Run tests
 
 ```bash
 pytest tests/
 ```
 
-## 📚 Documentación
+## 📚 Documentation
 
-La documentación de la API estará disponible en `http://localhost:8000/docs` cuando el servidor esté en ejecución.
+API docs will be available at `http://localhost:8000/docs` when the server is running.
 
+## 🧪 Tests
 
-## 📄 Licencia
+- Unit tests: `tests/unit/`
+- Integration tests: `tests/integration/`
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más información.
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-Desarrollado con ❤️ por David Salas
+Developed with ❤️ by David Salas
