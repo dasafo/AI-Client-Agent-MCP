@@ -54,7 +54,7 @@ AI-Client-Agent-MCP/
 
 1. Clona el repositorio:
    ```bash
-   git clone [URL_DEL_REPOSITORIO]
+   git clone https://github.com/dasafo/AI-Client-Agent-MCP.git
    cd AI-Client-Agent-MCP
    ```
 
@@ -119,9 +119,6 @@ pytest tests/
 
 La documentación de la API estará disponible en `http://localhost:8000/docs` cuando el servidor esté en ejecución.
 
-## 🤝 Contribución
-
-Las contribuciones son bienvenidas. Por favor, lee nuestras [pautas de contribución](CONTRIBUTING.md) antes de enviar un pull request.
 
 ## 📄 Licencia
 
