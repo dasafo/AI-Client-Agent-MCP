@@ -127,6 +127,108 @@ python -m backend.server
 pytest tests/
 ```
 
+## 🧑‍💻 Ejemplo de uso vía HTTP (curl)
+
+Supón que el servidor MCP está corriendo en `http://localhost:8000` y tienes expuesto el endpoint para añadir clientes:
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Carlos Demo", "email": "carlos.demo@example.com", "phone": "600111222", "city": "Sevilla"}' \
+  http://localhost:8000/tools/add_client
+```
+
+Respuesta esperada:
+
+```json
+{
+  "success": true,
+  "client": {
+    "id": 3,
+    "name": "Carlos Demo",
+    "email": "carlos.demo@example.com",
+    "phone": "600111222",
+    "city": "Sevilla",
+    "created_at": "2025-05-20T12:34:56",
+    "updated_at": "2025-05-20T12:34:56"
+  }
+}
+```
+
+Si el email ya existe:
+
+```json
+{
+  "success": false,
+  "error": "El email carlos.demo@example.com ya está registrado"
+}
+```
+
+## Ejemplo de uso: tool MCP para crear cliente y enviar email de bienvenida
+
+### Llamada desde agente MCP o HTTP (ejemplo curl)
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ana Ejemplo",
+    "email": "ana.ejemplo@demo.com",
+    "phone": "600123456",
+    "city": "Madrid"
+  }' \
+  http://localhost:8000/tools/add_client_and_send_welcome_email
+```
+
+#### Respuesta esperada:
+```json
+{
+  "success": true,
+  "client": {
+    "id": 7,
+    "name": "Ana Ejemplo",
+    "email": "ana.ejemplo@demo.com",
+    "phone": "600123456",
+    "city": "Madrid",
+    "created_at": "2025-05-20T12:34:56",
+    "updated_at": "2025-05-20T12:34:56"
+  },
+  "email_sent": true,
+  "email_response": "{\"success\":true,\"detail\":\"Email enviado correctamente\"}"
+}
+```
+
+- Si el email ya existe, la respuesta será:
+```json
+{
+  "success": false,
+  "error": "El email ana.ejemplo@demo.com ya está registrado"
+}
+```
+
+- Puedes cambiar la URL del servidor de emails pasando el parámetro `email_server_url` en el body.
+
+---
+
+> **Nota:** Para que el envío de email funcione, el servidor MCP de emails debe estar corriendo y accesible en la URL configurada (por defecto: `http://localhost:8080/tools/send_email`).
+
+## 🚦 Consejos de despliegue
+
+- **Producción:** Se recomienda ejecutar el servidor detrás de un proxy inverso (como Nginx o Traefik) y habilitar HTTPS.
+- **Autenticación:** Añade autenticación (JWT, API Key, OAuth2) antes de exponer la API en entornos públicos.
+- **Servidor ASGI:** Para alto rendimiento, puedes usar `uvicorn` o `gunicorn` con workers asíncronos:
+
+```bash
+uvicorn backend.server:mcp --host 0.0.0.0 --port 8000
+```
+
+- **Variables de entorno:** No subas `.env` a producción. Usa variables de entorno seguras.
+
+## 📝 Notas para contribuidores
+
+- Mantén actualizado este README y `docs/architecture.md` si cambias la arquitectura o el flujo de la aplicación.
+- Explica en `docs/architecture.md` cualquier decisión arquitectónica relevante.
+
 ## 📚 Documentation
 
 API docs will be available at `http://localhost:8000/docs` when the server is running.
