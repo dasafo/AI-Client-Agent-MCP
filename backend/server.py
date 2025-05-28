@@ -26,6 +26,7 @@ log_mcp_agent("==== Arrancando agente MCP ====")
 log_mcp_agent(f"CWD: {os.getcwd()}")
 log_mcp_agent(f"sys.path: {sys.path}")
 
+# Añadir el directorio raíz al sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 load_dotenv()

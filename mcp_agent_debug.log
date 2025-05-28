@@ -43,3 +43,6 @@
 [2025-05-28T19:20:27.459249] ==== Arrancando agente MCP ====
 [2025-05-28T19:20:27.459473] CWD: /home/david/Documents/AI/AI-Client-Agent-MCP
 [2025-05-28T19:20:27.459635] sys.path: ['/home/david/Documents/AI/AI-Client-Agent-MCP', '/usr/lib/python312.zip', '/usr/lib/python3.12', '/usr/lib/python3.12/lib-dynload', '/home/david/Documents/AI/AI-Client-Agent-MCP/.venv/lib/python3.12/site-packages']
+[2025-05-28T19:34:08.633111] ==== Arrancando agente MCP ====
+[2025-05-28T19:34:08.633241] CWD: /home/david/Documents/AI/AI-Client-Agent-MCP
+[2025-05-28T19:34:08.633334] sys.path: ['/home/david/Documents/AI/AI-Client-Agent-MCP', '/usr/lib/python312.zip', '/usr/lib/python3.12', '/usr/lib/python3.12/lib-dynload', '/home/david/Documents/AI/AI-Client-Agent-MCP/.venv/lib/python3.12/site-packages']

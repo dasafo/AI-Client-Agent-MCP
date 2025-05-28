@@ -13,7 +13,7 @@ from backend.models.invoice import (
     InvoiceOut, 
     InvoiceDeleteResponse
 )
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any
 from decimal import Decimal
 from datetime import date
 
@@ -68,10 +68,10 @@ async def list_client_invoices(client_id: int) -> Dict[str, Any]:
 )
 async def create_invoice_tool(
     client_id: int, 
-    amount: str, # Recibimos como str para convertir a Decimal aquí
-    issued_at: Optional[str] = None, # Recibimos como str para convertir a date
-    due_date: Optional[str] = None, # Recibimos como str para convertir a date
-    status: Optional[str] = None
+    amount: str, 
+    issued_at: str = "", 
+    due_date: str = "", 
+    status: str = ""
 ) -> Dict[str, Any]:
     try:
         invoice_in = InvoiceCreate(
@@ -79,7 +79,7 @@ async def create_invoice_tool(
             amount=Decimal(amount),
             issued_at=date.fromisoformat(issued_at) if issued_at else None,
             due_date=date.fromisoformat(due_date) if due_date else None,
-            status=status
+            status=status if status else None
         )
         new_invoice_data = await service_create_invoice(invoice_in)
         new_invoice = InvoiceOut(**new_invoice_data)
@@ -95,26 +95,29 @@ async def create_invoice_tool(
 )
 async def update_invoice_tool(
     invoice_id: int, 
-    client_id: Optional[int] = None,
-    amount: Optional[str] = None, 
-    issued_at: Optional[str] = None, 
-    due_date: Optional[str] = None, 
-    status: Optional[str] = None
+    client_id: str = "",
+    amount: str = "", 
+    issued_at: str = "", 
+    due_date: str = "", 
+    status: str = ""
 ) -> Dict[str, Any]:
     try:
-        update_data = InvoiceUpdate(
-            client_id=client_id,
-            amount=Decimal(amount) if amount else None,
-            issued_at=date.fromisoformat(issued_at) if issued_at else None,
-            due_date=date.fromisoformat(due_date) if due_date else None,
-            status=status
-        ).model_dump(exclude_unset=True)
+        update_payload = {}
+        if client_id:
+            update_payload['client_id'] = int(client_id)
+        if amount:
+            update_payload['amount'] = Decimal(amount)
+        if issued_at:
+            update_payload['issued_at'] = date.fromisoformat(issued_at)
+        if due_date:
+            update_payload['due_date'] = date.fromisoformat(due_date)
+        if status:
+            update_payload['status'] = status
 
-        if not update_data:
+        if not update_payload:
             return {"success": False, "error": "No se proporcionaron datos para actualizar"}
         
-        # Convertir a InvoiceUpdate Pydantic model antes de pasar al servicio
-        invoice_update_pydantic = InvoiceUpdate(**update_data) 
+        invoice_update_pydantic = InvoiceUpdate(**update_payload) 
 
         updated_invoice_data = await service_update_invoice(invoice_id, invoice_update_pydantic)
         if not updated_invoice_data:
