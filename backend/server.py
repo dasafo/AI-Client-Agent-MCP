@@ -36,11 +36,12 @@ log = logging.getLogger(__name__)
 if __name__ == "__main__":
     log.info("Arrancando FastMCP en %s:%s …", HOST, PORT)
     mcp.run(
-        transport="streamable-http",
+        #transport="streamable-http",
+        transport="sse",
         host=HOST,
         port=PORT,
-        path="/mcp",
+        path="/sse",
         log_level="info",
     )
 
-
+#  /home/david/Documents/AI/AI-Client-Agent-MCP/.venv/bin/python -m backend.server 
