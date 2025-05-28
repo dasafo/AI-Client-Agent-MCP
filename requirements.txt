@@ -1,0 +1,9 @@
+fastmcp==2.5.1
+asyncpg>=0.28
+python-dotenv
+httpx
+pydantic
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic

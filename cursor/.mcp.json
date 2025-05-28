@@ -1,0 +1,14 @@
+{
+    "servers": [
+      {
+        "id": "AI-Client-Agent-MCP",
+        "displayName": "MCP Local DB",
+        "entrypoint": "bash -c 'source .venv/bin/activate && python -m backend.server'",
+        "cwd": ".",
+        "port": 8000,
+        "autoStart": true,
+        "healthCheckPath": "/mcp"
+      }
+    ]
+  }
+  
