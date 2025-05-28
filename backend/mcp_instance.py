@@ -5,9 +5,9 @@ except ImportError:
     try:
         from mcp import FastMCP
     except ImportError:
-        # Si falla, usar nuestro wrapper simple
-        from backend.fastmcp_wrapper import SimpleFastMCP as FastMCP
-        print("AVISO: Usando SimpleFastMCP como alternativa")
+        print("ERROR CRÍTICO: No se pudo importar FastMCP ni de 'fastmcp' ni de 'mcp'.")
+        print("Asegúrate de que uno de estos paquetes esté instalado correctamente en tu entorno.")
+        raise
 
 mcp = FastMCP(
     "AI-Client-Agent-MCP",

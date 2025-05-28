@@ -2,10 +2,12 @@ import logging
 import os
 from dotenv import load_dotenv
 from backend.mcp_instance import mcp  # ← Este debe ser único
-from backend.api.v1.tools import client_tools  # ← ¡Importa tus tools!
+from backend.api.v1.tools import client_tools  # Importa tus tools de clientes
+from backend.api.v1.tools import invoice_tools # Importa tus tools de facturas
 import sys
 import datetime
 
+# Log de inicio
 with open("/home/david/Documents/AI/AI-Client-Agent-MCP/startup_env.log", "w") as f:
     f.write(f"sys.executable: {sys.executable}\n")
     f.write(f"sys.path: {sys.path}\n")
@@ -14,6 +16,7 @@ with open("/home/david/Documents/AI/AI-Client-Agent-MCP/startup_env.log", "w") a
 log_path = os.path.join(os.path.dirname(__file__), "..", "mcp_agent_debug.log")
 log_path = os.path.abspath(log_path)
 
+# Función para registrar mensajes en el log
 def log_mcp_agent(msg):
     with open(log_path, "a") as f:
         f.write(f"[{datetime.datetime.now().isoformat()}] {msg}\n")
@@ -35,6 +38,8 @@ log = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     log.info("Arrancando FastMCP en %s:%s …", HOST, PORT)
+    # Las herramientas se registran automáticamente por FastMCP al ser importadas 
+    # si están decoradas con @mcp.tool en los módulos importados (client_tools, invoice_tools)
     mcp.run(
         #transport="streamable-http",
         transport="sse",
