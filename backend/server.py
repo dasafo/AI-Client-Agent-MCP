@@ -7,19 +7,43 @@ from backend.api.v1.tools import invoice_tools # Importa tus tools de facturas
 import sys
 import datetime
 
-# Log de inicio
-with open("/home/david/Documents/AI/AI-Client-Agent-MCP/startup_env.log", "w") as f:
-    f.write(f"sys.executable: {sys.executable}\n")
-    f.write(f"sys.path: {sys.path}\n")
-    f.write(f"os.environ.get('VIRTUAL_ENV'): {os.environ.get('VIRTUAL_ENV')}\n")
+# Log de inicio - Modificado para Docker
+# Directorio de logs dentro de /app (directorio de trabajo en Docker)
+LOGS_DIR = "/app/logs" # O simplemente "logs" si quieres que sea relativo a /app
+STARTUP_DETAILS_LOG_PATH = os.path.join(LOGS_DIR, "startup_server_details.log")
 
-log_path = os.path.join(os.path.dirname(__file__), "..", "mcp_agent_debug.log")
-log_path = os.path.abspath(log_path)
+# Asegurarse de que el directorio de logs exista
+if not os.path.exists(LOGS_DIR):
+    try:
+        os.makedirs(LOGS_DIR)
+    except OSError as e:
+        # En un entorno serverless o muy restringido, esto podría fallar.
+        # Para Docker, generalmente está bien.
+        print(f"Warning: Could not create logs directory {LOGS_DIR}: {e}", file=sys.stderr)
+        # Fallback a log en /app si la creación del subdir falla
+        STARTUP_DETAILS_LOG_PATH = "/app/startup_server_details.log"
+
+try:
+    with open(STARTUP_DETAILS_LOG_PATH, "w") as f:
+        f.write(f"[{datetime.datetime.now().isoformat()}] Server starting up...\n")
+        f.write(f"sys.executable: {sys.executable}\n")
+        f.write(f"sys.path: {str(sys.path)}\n") # Convertir sys.path a string
+        f.write(f"os.getcwd(): {os.getcwd()}\n")
+        f.write(f"os.environ.get('VIRTUAL_ENV'): {os.environ.get('VIRTUAL_ENV')}\n")
+except IOError as e:
+    print(f"Warning: Could not write to {STARTUP_DETAILS_LOG_PATH}: {e}", file=sys.stderr)
+
+
+# Ruta para mcp_agent_debug.log - se resolverá a /app/logs/mcp_agent_debug.log
+DEBUG_LOG_PATH = os.path.join(LOGS_DIR, "mcp_agent_debug.log")
 
 # Función para registrar mensajes en el log
 def log_mcp_agent(msg):
-    with open(log_path, "a") as f:
-        f.write(f"[{datetime.datetime.now().isoformat()}] {msg}\n")
+    try:
+        with open(DEBUG_LOG_PATH, "a") as f:
+            f.write(f"[{datetime.datetime.now().isoformat()}] {msg}\n")
+    except IOError as e:
+        print(f"Warning: Could not write to {DEBUG_LOG_PATH}: {e} (Message: {msg})", file=sys.stderr)
 
 # Ejemplo de uso
 log_mcp_agent("==== Arrancando agente MCP ====")
@@ -30,6 +54,7 @@ log_mcp_agent(f"sys.path: {sys.path}")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 load_dotenv()
+
 HOST = os.getenv("SERVER_HOST", "localhost")
 PORT = int(os.getenv("SERVER_PORT", 8000))
 

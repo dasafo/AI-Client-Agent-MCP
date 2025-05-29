@@ -1,0 +1,71 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_client_agent_app
+    ports:
+      - "${SERVER_PORT:-8000}:${SERVER_PORT:-8000}" # Usa SERVER_PORT de .env, o 8000 como fallback
+    volumes:
+      - ./backend:/app/backend # Montaje para desarrollo en vivo
+      - ./app_logs:/app/logs   # Mapea un directorio local para logs de la app
+    env_file:
+      - .env # Carga todas las variables de .env
+    environment:
+      # DATABASE_URL para referencia o si alguna parte de la app lo parsea directamente.
+      # La conexión principal se hará usando DB_HOST, DB_PORT, etc. que son leídos por get_db_connection_params.
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
+      DB_HOST: db # Sobrescribe DB_HOST para que apunte al servicio 'db' de Docker
+      SERVER_HOST: 0.0.0.0 # Asegura que mcp.run() en server.py escuche en todas las interfaces dentro del contenedor
+      # DB_PORT, DB_USER, DB_PASSWORD, DB_NAME se toman de .env y son correctos para la conexión interna.
+      PYTHONUNBUFFERED: 1
+      # SERVER_HOST y SERVER_PORT para la app se controlan por el CMD en el Dockerfile (0.0.0.0:8000)
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  db:
+    image: postgres:15-alpine
+    container_name: ai_client_agent_db
+    ports:
+      - "5433:5432" # Expone el puerto de la BD de Docker al puerto 5433 del host
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    environment:
+      POSTGRES_USER: ${DB_USER} # Tomado de .env
+      POSTGRES_PASSWORD: ${DB_PASSWORD} # Tomado de .env
+      POSTGRES_DB: ${DB_NAME} # Tomado de .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ai_client_agent_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - app_network
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  app_network:
+    driver: bridge 

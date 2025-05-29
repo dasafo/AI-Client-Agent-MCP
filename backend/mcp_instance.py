@@ -13,3 +13,6 @@ mcp = FastMCP(
     "AI-Client-Agent-MCP",
     stateless_http=True,
 )
+
+# # Exponer la aplicación FastAPI directamente para Uvicorn
+# app = mcp.app
