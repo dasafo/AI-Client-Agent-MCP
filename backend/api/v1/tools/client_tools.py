@@ -15,6 +15,8 @@ from backend.models.client import (
 from typing import List, Dict, Any
 from datetime import datetime
 
+# Herramientas para la gestión de clientes
+# Estas funciones exponen la funcionalidad de gestión de clientes a través del MCP (Master Control Program)
 
 @mcp.tool(
     name="list_clients",
@@ -23,14 +25,21 @@ from datetime import datetime
 async def list_clients() -> dict:
     """Listar clientes de la base de datos"""
     try:
+        # Obtiene todos los clientes desde el servicio
         clients_data = await service_get_all_clients()
         processed_clients = []
+        
+        # Procesa cada cliente para manejar correctamente las fechas
         for client_dict in clients_data:
+            # Convierte objetos datetime a formato ISO para la serialización JSON
             if isinstance(client_dict.get('created_at'), datetime):
                 client_dict['created_at'] = client_dict['created_at'].isoformat()
             processed_clients.append(ClientOut(**client_dict))
+            
+        # Devuelve la lista de clientes serializada
         return {"success": True, "clients": [c.model_dump() for c in processed_clients]}
     except Exception as e:
+        # Captura cualquier error y lo devuelve en la respuesta
         return {"success": False, "error": str(e)}
 
 
@@ -46,16 +55,21 @@ async def get_client(client_id: int) -> dict:
         client_id: ID del cliente a consultar
     """
     try:
+        # Busca el cliente por su ID utilizando el servicio
         client_data = await service_get_client_by_id(client_id)
         if not client_data:
+            # Si no se encuentra el cliente, devuelve un mensaje de error
             return {"success": False, "error": f"Cliente con ID {client_id} no encontrado"}
         
+        # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(client_data.get('created_at'), datetime):
             client_data['created_at'] = client_data['created_at'].isoformat()
-            
+        
+        # Crea un objeto Pydantic para validación y serialización
         client = ClientOut(**client_data)
         return {"success": True, "client": client.model_dump()}
     except Exception as e:
+        # Captura cualquier error y lo devuelve en la respuesta
         return {"success": False, "error": str(e)}
 
 
@@ -73,19 +87,25 @@ async def create_client_tool(name: str, city: str = "", email: str = "") -> dict
         email: Email del cliente (opcional)
     """
     try:
+        # Crea un modelo Pydantic para validar los datos de entrada
         client_in = ClientCreate(
             name=name, 
             city=city if city else None, 
             email=email if email else None
         )
+        
+        # Llama al servicio para crear el cliente en la base de datos
         new_client_data = await service_create_client(client_in.name, client_in.city, client_in.email)
         
+        # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(new_client_data.get('created_at'), datetime):
             new_client_data['created_at'] = new_client_data['created_at'].isoformat()
-            
+        
+        # Crea un objeto Pydantic para validación y serialización de la respuesta
         new_client = ClientOut(**new_client_data)
         return {"success": True, "client": new_client.model_dump()}
     except Exception as e:
+        # Captura cualquier error y lo devuelve en la respuesta
         return {"success": False, "error": str(e)}
 
 
@@ -104,26 +124,34 @@ async def update_client_tool(client_id: int, name: str = "", city: str = "", ema
         email: Nuevo email del cliente (opcional)
     """
     try:
+        # Crea un modelo Pydantic para validar los datos de actualización
         client_update_data = ClientUpdate(
             name=name if name else None, 
             city=city if city else None, 
             email=email if email else None
         )
         
+        # Extrae solo los campos no vacíos para la actualización parcial
         update_data_dict = client_update_data.model_dump(exclude_unset=True)
         if not update_data_dict:
+            # Si no hay datos para actualizar, devuelve un mensaje de error
             return {"success": False, "error": "No se proporcionaron datos para actualizar"}
-            
+        
+        # Llama al servicio para actualizar el cliente en la base de datos
         updated_client_data = await service_update_client(client_id, **update_data_dict)
         if not updated_client_data:
+            # Si no se encuentra el cliente o hay error al actualizar, devuelve un mensaje
             return {"success": False, "error": f"Cliente con ID {client_id} no encontrado o error al actualizar"}
-            
+        
+        # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(updated_client_data.get('created_at'), datetime):
             updated_client_data['created_at'] = updated_client_data['created_at'].isoformat()
 
+        # Crea un objeto Pydantic para validación y serialización de la respuesta
         updated_client = ClientOut(**updated_client_data)
         return {"success": True, "client": updated_client.model_dump()}
     except Exception as e:
+        # Captura cualquier error y lo devuelve en la respuesta
         return {"success": False, "error": str(e)}
 
 
@@ -139,23 +167,31 @@ async def delete_client_tool(client_id: int) -> ClientDeleteResponse:
         client_id: ID del cliente a eliminar
     """
     try:
+        # Primero verifica que el cliente exista
         client_to_delete_data = await service_get_client_by_id(client_id)
         if not client_to_delete_data:
+            # Si no se encuentra el cliente, devuelve un mensaje de error
             return ClientDeleteResponse(success=False, message=f"Cliente con ID {client_id} no encontrado")
         
+        # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(client_to_delete_data.get('created_at'), datetime):
             client_to_delete_data['created_at'] = client_to_delete_data['created_at'].isoformat()
 
+        # Crea un objeto Pydantic para el cliente que se va a eliminar
         deleted_client_out = ClientOut(**client_to_delete_data)
         
+        # Llama al servicio para eliminar el cliente de la base de datos
         deleted = await service_delete_client(client_id)
         if deleted:
+            # Si se eliminó correctamente, devuelve un mensaje de éxito y los datos del cliente eliminado
             return ClientDeleteResponse(
                 success=True, 
                 message=f"Cliente con ID {client_id} eliminado correctamente",
                 deleted_client=deleted_client_out
             )
         else:
+            # Si hubo un problema al eliminar, devuelve un mensaje de error
             return ClientDeleteResponse(success=False, message=f"No se pudo eliminar el cliente con ID {client_id}")
     except Exception as e:
+        # Captura cualquier error y lo devuelve en la respuesta
         return ClientDeleteResponse(success=False, message=str(e))

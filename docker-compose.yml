@@ -1,4 +1,9 @@
+# docker-compose.yml
+# Archivo de configuración para Docker Compose
+# Define los servicios, redes y volúmenes necesarios para ejecutar la aplicación
+
 services:
+  # Servicio de la aplicación principal
   app:
     build:
       context: .
@@ -18,22 +23,23 @@ services:
       DB_HOST: db # Sobrescribe DB_HOST para que apunte al servicio 'db' de Docker
       SERVER_HOST: 0.0.0.0 # Asegura que mcp.run() en server.py escuche en todas las interfaces dentro del contenedor
       # DB_PORT, DB_USER, DB_PASSWORD, DB_NAME se toman de .env y son correctos para la conexión interna.
-      PYTHONUNBUFFERED: 1
+      PYTHONUNBUFFERED: 1 # Deshabilita el buffering de salida de Python
       # SERVER_HOST y SERVER_PORT para la app se controlan por el CMD en el Dockerfile (0.0.0.0:8000)
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy # Espera a que el servicio de base de datos esté listo
     networks:
       - app_network
 
+  # Servicio de base de datos PostgreSQL
   db:
     image: postgres:15-alpine
     container_name: ai_client_agent_db
     ports:
       - "5433:5432" # Expone el puerto de la BD de Docker al puerto 5433 del host
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./database/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+      - postgres_data:/var/lib/postgresql/data # Volumen persistente para datos de PostgreSQL
+      - ./database/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql # Script para inicializar la BD
     environment:
       POSTGRES_USER: ${DB_USER} # Tomado de .env
       POSTGRES_PASSWORD: ${DB_PASSWORD} # Tomado de .env
@@ -46,6 +52,7 @@ services:
     networks:
       - app_network
 
+  # Servicio de administración de PostgreSQL
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: ai_client_agent_pgadmin
@@ -56,16 +63,18 @@ services:
     ports:
       - "${PGADMIN_PORT:-5050}:80"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - pgadmin_data:/var/lib/pgadmin # Volumen persistente para datos de pgAdmin
     networks:
       - app_network
     depends_on:
       - db
 
+# Definición de volúmenes persistentes
 volumes:
-  postgres_data:
-  pgadmin_data:
+  postgres_data: # Almacena los datos de PostgreSQL
+  pgadmin_data: # Almacena los datos de pgAdmin
 
+# Definición de redes
 networks:
   app_network:
-    driver: bridge 
+    driver: bridge # Usa el driver bridge para comunicación entre contenedores 

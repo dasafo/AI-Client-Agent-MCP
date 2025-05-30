@@ -1,9 +1,18 @@
+# .dockerignore
+# Este archivo especifica qué archivos y directorios deben ser excluidos durante la construcción de la imagen Docker
+# para reducir el tamaño de la imagen y evitar copiar archivos innecesarios o sensibles
+
+# Archivos de configuración Docker
 .dockerignore
 Dockerfile
 docker-compose.yml
+
+# Archivos de control de versiones
 .git
 .gitignore
 .gitattributes
+
+# Entornos virtuales y caché de Python
 .venv/
 env/
 venv/
@@ -13,9 +22,15 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+
+# Archivos de editores y IDEs
 .vscode/
 .idea/
+
+# Archivos específicos de pruebas
 tests/.env.test
+
+# Archivos de logs
 *.log
 mcp_agent_debug.log
 startup_env.log 

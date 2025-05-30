@@ -1,13 +1,41 @@
+# requirements.txt
+# Archivo que especifica las dependencias del proyecto
+
+# Framework para crear agentes de IA conversacionales
 fastmcp==2.5.1
+
+# Adaptador PostgreSQL asíncrono para Python
 asyncpg>=0.28
+
+# Gestor de variables de entorno desde archivos .env
 python-dotenv
+
+# Cliente HTTP asíncrono para Python
 httpx
+
+# Biblioteca para validación de datos y serialización
 pydantic
+
+# Framework web para crear APIs con Python
 fastapi
+
+# Servidor ASGI para aplicaciones web (incluye extras)
 uvicorn[standard]
+
+# ORM (Object-Relational Mapping) para bases de datos
 sqlalchemy
+
+# Herramienta de migración de bases de datos
 alembic
+
+# Framework para pruebas en Python
 pytest
+
+# Extensión para ejecutar pruebas asíncronas con pytest
 pytest-asyncio
+
+# Extensión para usar mocks en pruebas
 pytest-mock
+
+# Adaptador PostgreSQL para Python (binario precompilado)
 psycopg2-binary
