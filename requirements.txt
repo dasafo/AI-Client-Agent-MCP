@@ -1,5 +1,4 @@
 # requirements.txt
-# Archivo que especifica las dependencias del proyecto
 
 # Framework para crear agentes de IA conversacionales
 fastmcp==2.5.1

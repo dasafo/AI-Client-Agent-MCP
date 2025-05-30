@@ -1,259 +1,248 @@
 from backend.core.database import database
-from backend.models.invoice import InvoiceCreate, InvoiceUpdate # Para type hinting si es necesario
+from backend.core.decorators import with_db_connection, db_transaction
+from backend.models.invoice import InvoiceCreate, InvoiceUpdate
 from typing import List, Optional, Dict, Any
 from decimal import Decimal
 from datetime import date
 import asyncpg
+import logging
 
-# Servicios para la gestión de facturas
-# Estas funciones implementan la lógica de negocio y el acceso a la base de datos para las facturas
-# Todas las funciones aceptan una conexión opcional para facilitar las transacciones y las pruebas
+# Configure logger
+logger = logging.getLogger(__name__)
 
+# Invoice management services
+# These functions implement business logic and database access for invoices
+# All functions accept an optional connection to facilitate transactions and testing
+
+@with_db_connection
 async def get_all_invoices(conn: Optional[asyncpg.Connection] = None) -> List[Dict[str, Any]]:
     """
-    Obtiene todas las facturas ordenadas por ID.
+    Get all invoices ordered by ID.
     
     Args:
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Lista de diccionarios con los datos de todas las facturas.
+        List of dictionaries containing invoice data.
     """
-    # Conexión interna a gestionar si no se proporciona conn
-    conn_for_read = None
-    try:
-        if conn is None:
-            # Si no hay una conexión proporcionada, obtenemos una nueva
-            pool = await database.connect()
-            conn_for_read = await pool.acquire()
-            conn_to_use = conn_for_read
-        else:
-            # Usamos la conexión proporcionada
-            conn_to_use = conn
-            
-        # Consulta todas las facturas ordenadas por ID
-        rows = await conn_to_use.fetch(
-            "SELECT id, client_id, amount, issued_at, due_date, status FROM invoices ORDER BY id"
-        )
-        return [dict(row) for row in rows]
-    finally:
-        # Solo cerramos las conexiones que creamos internamente
-        if conn_for_read:
-            await pool.release(conn_for_read)
+    query = """
+        SELECT id, client_id, amount, issued_at, due_date, status, created_at, updated_at 
+        FROM invoices 
+        ORDER BY id
+    """
+    
+    rows = await conn.fetch(query)
+    return [dict(row) for row in rows]
 
+@with_db_connection
 async def get_invoice_by_id(invoice_id: int, conn: Optional[asyncpg.Connection] = None) -> Optional[Dict[str, Any]]:
     """
-    Obtiene una factura específica por su ID.
+    Get a specific invoice by ID.
     
     Args:
-        invoice_id: ID de la factura a buscar.
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        invoice_id: ID of the invoice to find.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Diccionario con los datos de la factura o None si no se encuentra.
+        Dictionary with invoice data or None if not found.
     """
-    conn_for_read = None
-    try:
-        if conn is None:
-            # Si no hay una conexión proporcionada, obtenemos una nueva
-            pool = await database.connect()
-            conn_for_read = await pool.acquire()
-            conn_to_use = conn_for_read
-        else:
-            # Usamos la conexión proporcionada
-            conn_to_use = conn
-            
-        # Consulta la factura por ID
-        row = await conn_to_use.fetchrow(
-            "SELECT id, client_id, amount, issued_at, due_date, status FROM invoices WHERE id = $1",
-            invoice_id
-        )
-        return dict(row) if row else None
-    finally:
-        # Solo cerramos las conexiones que creamos internamente
-        if conn_for_read:
-            await pool.release(conn_for_read)
+    query = """
+        SELECT id, client_id, amount, issued_at, due_date, status, created_at, updated_at 
+        FROM invoices 
+        WHERE id = $1
+    """
+    
+    row = await conn.fetchrow(query, invoice_id)
+    return dict(row) if row else None
 
+@with_db_connection
 async def get_invoices_by_client_id(client_id: int, conn: Optional[asyncpg.Connection] = None) -> List[Dict[str, Any]]:
     """
-    Obtiene todas las facturas de un cliente específico.
+    Get all invoices for a specific client.
     
     Args:
-        client_id: ID del cliente cuyos facturas se desean obtener.
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        client_id: ID of the client whose invoices to retrieve.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Lista de diccionarios con los datos de las facturas del cliente.
+        List of dictionaries containing invoice data for the client.
     """
-    conn_for_read = None
-    try:
-        if conn is None:
-            # Si no hay una conexión proporcionada, obtenemos una nueva
-            pool = await database.connect()
-            conn_for_read = await pool.acquire()
-            conn_to_use = conn_for_read
-        else:
-            # Usamos la conexión proporcionada
-            conn_to_use = conn
-            
-        # Consulta las facturas del cliente ordenadas por ID
-        rows = await conn_to_use.fetch(
-            "SELECT id, client_id, amount, issued_at, due_date, status FROM invoices WHERE client_id = $1 ORDER BY id",
-            client_id
-        )
-        return [dict(row) for row in rows]
-    finally:
-        # Solo cerramos las conexiones que creamos internamente
-        if conn_for_read:
-            await pool.release(conn_for_read)
+    query = """
+        SELECT id, client_id, amount, issued_at, due_date, status, created_at, updated_at 
+        FROM invoices 
+        WHERE client_id = $1 
+        ORDER BY id
+    """
+    
+    rows = await conn.fetch(query, client_id)
+    return [dict(row) for row in rows]
 
+@with_db_connection
 async def create_invoice(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Connection] = None) -> Dict[str, Any]:
     """
-    Crea una nueva factura en la base de datos.
+    Create a new invoice in the database.
     
     Args:
-        invoice_data: Objeto InvoiceCreate con los datos de la factura a crear.
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        invoice_data: InvoiceCreate object with invoice data.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Diccionario con los datos de la factura creada.
+        Dictionary with the created invoice data.
         
     Raises:
-        Exception: Si no se pudo crear la factura.
+        Exception: If invoice creation fails.
     """
-    conn_for_write = None
-    try:
-        if conn is None:
-            # Si no hay una conexión proporcionada, obtenemos una nueva
-            pool = await database.connect()
-            conn_for_write = await pool.acquire()
-            conn_to_use = conn_for_write
-        else:
-            # Usamos la conexión proporcionada
-            conn_to_use = conn
-            
-        # Valores por defecto de la base de datos para issued_at y status se aplicarán si no se proporcionan
-        row = await conn_to_use.fetchrow(
-            """
-            INSERT INTO invoices (client_id, amount, issued_at, due_date, status) 
-            VALUES ($1, $2, $3, $4, $5) 
-            RETURNING id, client_id, amount, issued_at, due_date, status
-            """,
-            invoice_data.client_id, 
-            invoice_data.amount,
-            invoice_data.issued_at if invoice_data.issued_at is not None else date.today(), # Default si no está en DDL
-            invoice_data.due_date,
-            invoice_data.status if invoice_data.status is not None else 'pending' # Default si no está en DDL
-        )
-        if not row:
-            raise Exception("No se pudo crear la factura") # O un error más específico
-        return dict(row)
-    finally:
-        # Solo cerramos las conexiones que creamos internamente
-        if conn_for_write:
-            await pool.release(conn_for_write)
+    query = """
+        INSERT INTO invoices (client_id, amount, issued_at, due_date, status) 
+        VALUES ($1, $2, $3, $4, $5) 
+        RETURNING id, client_id, amount, issued_at, due_date, status, created_at, updated_at
+    """
+    
+    # Default values if not provided in the model
+    issued_at = invoice_data.issued_at if invoice_data.issued_at is not None else date.today()
+    status = invoice_data.status if invoice_data.status is not None else 'pending'
+    
+    row = await conn.fetchrow(
+        query,
+        invoice_data.client_id, 
+        invoice_data.amount,
+        issued_at,
+        invoice_data.due_date,
+        status
+    )
+    
+    if not row:
+        logger.error("Failed to create invoice")
+        raise Exception("Failed to create invoice")
+    
+    return dict(row)
 
+@with_db_connection
 async def update_invoice(invoice_id: int, invoice_data: InvoiceUpdate, conn: Optional[asyncpg.Connection] = None) -> Optional[Dict[str, Any]]:
     """
-    Actualiza los datos de una factura existente.
+    Update an existing invoice's data.
     
     Args:
-        invoice_id: ID de la factura a actualizar.
-        invoice_data: Objeto InvoiceUpdate con los campos a actualizar.
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        invoice_id: ID of the invoice to update.
+        invoice_data: InvoiceUpdate object with fields to update.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Diccionario con los datos actualizados de la factura o None si no se encuentra.
+        Dictionary with updated invoice data or None if not found.
     """
-    conn_for_write = None
+    # First verify the invoice exists
+    current_invoice = await get_invoice_by_id(invoice_id, conn=conn)
+    if not current_invoice:
+        logger.info(f"Invoice with ID {invoice_id} not found for update")
+        return None
     
-    try:
-        if conn is None:
-            # Si no hay una conexión proporcionada, obtenemos una nueva
-            pool = await database.connect()
-            conn_for_write = await pool.acquire()
-            conn_to_use = conn_for_write
-        else:
-            # Usamos la conexión proporcionada
-            conn_to_use = conn
-            
-        # Verificar que existe la factura
-        row = await conn_to_use.fetchrow(
-            "SELECT id, client_id, amount, issued_at, due_date, status FROM invoices WHERE id = $1",
-            invoice_id
-        )
-        current_invoice = dict(row) if row else None
-        
-        if not current_invoice:
-            return None  # La factura no existe, no se puede actualizar
+    # Get fields to update (only those that were set)
+    update_fields = invoice_data.model_dump(exclude_unset=True)
+    if not update_fields:
+        logger.info(f"No fields to update for invoice ID {invoice_id}")
+        return current_invoice
+    
+    # Build dynamic query based on provided fields
+    set_clauses = []
+    values = []
+    i = 1
+    
+    for key, value in update_fields.items():
+        set_clauses.append(f"{key} = ${i}")
+        values.append(value)
+        i += 1
+    
+    # Add updated_at timestamp
+    set_clauses.append("updated_at = CURRENT_TIMESTAMP")
+    
+    # Add invoice ID as the last parameter
+    values.append(invoice_id)
+    
+    query = f"""
+        UPDATE invoices 
+        SET {', '.join(set_clauses)} 
+        WHERE id = ${i}
+        RETURNING id, client_id, amount, issued_at, due_date, status, created_at, updated_at
+    """
+    
+    row = await conn.fetchrow(query, *values)
+    return dict(row) if row else None
 
-        # Crear un diccionario con los datos a actualizar, solo con los proporcionados
-        update_fields = invoice_data.model_dump(exclude_unset=True)
-        if not update_fields:
-            return current_invoice # No hay nada que actualizar, devolver el actual
-
-        # Construir la query dinámicamente para actualizar solo los campos proporcionados
-        set_clauses = []
-        values = []
-        i = 1
-        for key, value in update_fields.items():
-            set_clauses.append(f"{key} = ${i}")
-            values.append(value)
-            i += 1
-        
-        values.append(invoice_id) # Para el WHERE id = $i
-        
-        query = f"""
-            UPDATE invoices 
-            SET {', '.join(set_clauses)} 
-            WHERE id = ${i}
-            RETURNING id, client_id, amount, issued_at, due_date, status
-        """
-        
-        # Ejecuta la actualización y devuelve los datos actualizados
-        row = await conn_to_use.fetchrow(query, *values)
-        return dict(row) if row else None
-    finally:
-        # Solo cerramos las conexiones que creamos internamente
-        if conn_for_write:
-            await pool.release(conn_for_write)
-
+@with_db_connection
 async def delete_invoice(invoice_id: int, conn: Optional[asyncpg.Connection] = None) -> bool:
     """
-    Elimina una factura de la base de datos.
+    Delete an invoice from the database.
     
     Args:
-        invoice_id: ID de la factura a eliminar.
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        invoice_id: ID of the invoice to delete.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Boolean indicando si la eliminación fue exitosa.
+        Boolean indicating if deletion was successful.
     """
-    conn_for_delete = None
+    # First check if the invoice exists
+    invoice = await get_invoice_by_id(invoice_id, conn=conn)
+    if not invoice:
+        logger.info(f"Invoice with ID {invoice_id} not found for deletion")
+        return False
     
-    try:
-        if conn is None:
-            # Si no hay una conexión proporcionada, obtenemos una nueva
-            pool = await database.connect()
-            conn_for_delete = await pool.acquire()
-            conn_to_use = conn_for_delete
-        else:
-            # Usamos la conexión proporcionada
-            conn_to_use = conn
-            
-        # Verificar que existe la factura
-        row = await conn_to_use.fetchrow(
-            "SELECT id FROM invoices WHERE id = $1",
-            invoice_id
-        )
+    query = "DELETE FROM invoices WHERE id = $1"
+    
+    result = await conn.execute(query, invoice_id)
+    return "DELETE" in result
+
+@db_transaction
+async def create_invoice_with_verification(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Connection] = None) -> Dict[str, Any]:
+    """
+    Create a new invoice with additional client verification within a transaction.
+    
+    Args:
+        invoice_data: InvoiceCreate object with invoice data.
+        conn: Optional database connection. If not provided, a new one is created.
         
-        if not row:
-            return False # La factura no existe, no se puede eliminar
+    Returns:
+        Dictionary with the created invoice data.
         
-        # Elimina la factura y verifica que se eliminó exactamente un registro
-        result = await conn_to_use.execute("DELETE FROM invoices WHERE id = $1", invoice_id)
-        return result == "DELETE 1" # Retorna True si se eliminó exactamente un registro
-    finally:
-        # Solo cerramos las conexiones que creamos internamente
-        if conn_for_delete:
-            await pool.release(conn_for_delete) 
+    Raises:
+        Exception: If client doesn't exist or invoice creation fails.
+    """
+    # First verify that the client exists
+    client = await conn.fetchrow(
+        "SELECT id FROM clients WHERE id = $1",
+        invoice_data.client_id
+    )
+    
+    if not client:
+        error_msg = f"Cannot create invoice: Client with ID {invoice_data.client_id} does not exist"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+    
+    # Create the invoice within the same transaction
+    query = """
+        INSERT INTO invoices (client_id, amount, issued_at, due_date, status) 
+        VALUES ($1, $2, $3, $4, $5) 
+        RETURNING id, client_id, amount, issued_at, due_date, status, created_at, updated_at
+    """
+    
+    # Default values if not provided in the model
+    issued_at = invoice_data.issued_at if invoice_data.issued_at is not None else date.today()
+    status = invoice_data.status if invoice_data.status is not None else 'pending'
+    
+    row = await conn.fetchrow(
+        query,
+        invoice_data.client_id, 
+        invoice_data.amount,
+        issued_at,
+        invoice_data.due_date,
+        status
+    )
+    
+    if not row:
+        logger.error("Failed to create invoice")
+        raise Exception("Failed to create invoice")
+    
+    # Log the successful creation
+    invoice_id = dict(row)["id"]
+    logger.info(f"Successfully created invoice {invoice_id} for client {invoice_data.client_id}")
+    
+    return dict(row) 

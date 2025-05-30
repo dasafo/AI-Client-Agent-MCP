@@ -2,54 +2,54 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-# Modelos Pydantic para la gestión de clientes
-# Estos modelos definen la estructura de datos y validación para las operaciones con clientes
+# Pydantic models for client management
+# These models define the data structure and validation for client operations
 
 class ClientBase(BaseModel):
     """
-    Modelo base para clientes con campos comunes.
-    Todos los campos son opcionales en la clase base.
+    Base model for clients with common fields.
+    All fields are optional in the base class.
     """
-    name: Optional[str] = None  # Nombre del cliente
-    city: Optional[str] = None  # Ciudad del cliente
-    email: Optional[str] = None  # Email del cliente
+    name: Optional[str] = None  # Client name
+    city: Optional[str] = None  # Client city
+    email: Optional[str] = None  # Client email
 
 
 class ClientCreate(ClientBase):
     """
-    Modelo para la creación de nuevos clientes.
-    Requiere name obligatoriamente, los demás campos son opcionales.
+    Model for creating new clients.
+    Requires name as mandatory, other fields are optional.
     """
-    name: str  # Nombre del cliente (obligatorio para crear)
+    name: str  # Client name (required for creation)
 
 
 class ClientUpdate(ClientBase):
     """
-    Modelo para actualizar clientes existentes.
-    Todos los campos son opcionales para permitir actualizaciones parciales.
-    Hereda todos los campos opcionales de ClientBase.
+    Model for updating existing clients.
+    All fields are optional to allow partial updates.
+    Inherits all optional fields from ClientBase.
     """
     pass
 
 
 class ClientOut(ClientBase):
     """
-    Modelo para la salida de datos de clientes.
-    Incluye todos los campos necesarios para representar un cliente completo.
+    Model for client data output.
+    Includes all fields needed to represent a complete client.
     """
-    id: int  # ID único del cliente
-    name: str  # Nombre del cliente (siempre presente en la salida)
-    created_at: str  # Fecha de creación del cliente (en formato ISO)
+    id: int  # Unique client ID
+    name: str  # Client name (always present in output)
+    created_at: str  # Client creation date (in ISO format)
 
     class Config:
-        from_attributes = True  # pydantic v2 - permite crear el modelo desde atributos de un ORM
+        from_attributes = True  # pydantic v2 - allows creating the model from ORM attributes
 
 
 class ClientDeleteResponse(BaseModel):
     """
-    Modelo para la respuesta tras eliminar un cliente.
-    Incluye información sobre el éxito de la operación y el cliente eliminado.
+    Model for the response after deleting a client.
+    Includes information about the operation success and the deleted client.
     """
-    success: bool  # Indica si la operación fue exitosa
-    message: str  # Mensaje descriptivo del resultado
-    deleted_client: Optional[ClientOut] = None  # Datos del cliente eliminado (si existe)
+    success: bool  # Indicates if the operation was successful
+    message: str  # Descriptive message of the result
+    deleted_client: Optional[ClientOut] = None  # Data of the deleted client (if exists)

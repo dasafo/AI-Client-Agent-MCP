@@ -1,3 +1,0 @@
-sys.executable: /home/david/Documents/AI/AI-Client-Agent-MCP/.venv/bin/python
-sys.path: ['/home/david/Documents/AI/AI-Client-Agent-MCP', '/usr/lib/python312.zip', '/usr/lib/python3.12', '/usr/lib/python3.12/lib-dynload', '/home/david/Documents/AI/AI-Client-Agent-MCP/.venv/lib/python3.12/site-packages']
-os.environ.get('VIRTUAL_ENV'): /home/david/Documents/AI/AI-Client-Agent-MCP/.venv

@@ -1,219 +1,179 @@
 # backend/services/client_service.py
 from backend.core.database import database
+from backend.core.decorators import with_db_connection, db_transaction
+from typing import List, Dict, Any, Optional
+import logging
 
-# Servicios para la gestión de clientes
-# Estas funciones implementan la lógica de negocio y el acceso a la base de datos para los clientes
+# Configure logger
+logger = logging.getLogger(__name__)
 
-async def get_all_clients(conn=None):
+# Client management services
+# These functions implement business logic and database access for clients
+
+@with_db_connection
+async def get_all_clients(conn=None) -> List[Dict[str, Any]]:
     """
-    Obtiene todos los clientes ordenados por ID.
+    Get all clients ordered by ID.
     
     Args:
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Lista de diccionarios con los datos de todos los clientes.
+        List of dictionaries containing client data.
     """
-    was_conn_provided = conn is not None
-    pool = None
-    try:
-        if not was_conn_provided:
-            # Si no se proporcionó una conexión, obtenemos una nueva del pool
-            pool = await database.connect()
-            conn = await pool.acquire()
-        
-        # Consulta todos los clientes ordenados por ID
-        rows = await conn.fetch(
-            "SELECT id, name, city, email, created_at FROM clients ORDER BY id"
-        )
-        return [dict(row) for row in rows]
-    finally:
-        # Solo liberamos la conexión si la creamos internamente
-        if not was_conn_provided and conn:
-            if pool:
-                await pool.release(conn)
+    rows = await conn.fetch(
+        "SELECT id, name, city, email, created_at FROM clients ORDER BY id"
+    )
+    return [dict(row) for row in rows]
 
-async def get_client_by_id(client_id, conn=None):
+@with_db_connection
+async def get_client_by_id(client_id: int, conn=None) -> Optional[Dict[str, Any]]:
     """
-    Obtiene un cliente específico por su ID.
+    Get a specific client by ID.
     
     Args:
-        client_id: ID del cliente a buscar.
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        client_id: ID of the client to find.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Diccionario con los datos del cliente o None si no se encuentra.
+        Dictionary with client data or None if not found.
     """
-    was_conn_provided = conn is not None
-    pool = None
-    try:
-        if not was_conn_provided:
-            # Si no se proporcionó una conexión, obtenemos una nueva del pool
-            pool = await database.connect()
-            conn = await pool.acquire()
+    row = await conn.fetchrow(
+        "SELECT id, name, city, email, created_at FROM clients WHERE id = $1",
+        client_id
+    )
+    return dict(row) if row else None
 
-        # Consulta el cliente por ID
-        row = await conn.fetchrow(
-            "SELECT id, name, city, email, created_at FROM clients WHERE id = $1",
-            client_id
-        )
-        return dict(row) if row else None
-    finally:
-        # Solo liberamos la conexión si la creamos internamente
-        if not was_conn_provided and conn:
-            if pool:
-                await pool.release(conn)
-
-async def create_client(name, city, email, conn=None):
+@with_db_connection
+async def create_client(name: str, city: str = "", email: str = "", conn=None) -> Dict[str, Any]:
     """
-    Crea un nuevo cliente en la base de datos.
+    Create a new client in the database.
     
     Args:
-        name: Nombre del cliente (obligatorio).
-        city: Ciudad del cliente (opcional).
-        email: Email del cliente (opcional).
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        name: Client name (required).
+        city: Client city (optional).
+        email: Client email (optional).
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Diccionario con los datos del cliente creado.
+        Dictionary with the created client data.
     """
-    was_conn_provided = conn is not None
-    pool = None
-    try:
-        if not was_conn_provided:
-            # Si no se proporcionó una conexión, obtenemos una nueva del pool
-            pool = await database.connect()
-            conn = await pool.acquire()
-
-        # Inserta el nuevo cliente y devuelve sus datos
-        row = await conn.fetchrow(
-            """
-            INSERT INTO clients (name, city, email) 
-            VALUES ($1, $2, $3) 
-            RETURNING id, name, city, email, created_at
-            """,
-            name, city, email
-        )
-        return dict(row)
-    finally:
-        # Solo liberamos la conexión si la creamos internamente
-        if not was_conn_provided and conn:
-            if pool:
-                await pool.release(conn)
-
-async def update_client(client_id, name=None, city=None, email=None, conn=None):
+    query = """
+        INSERT INTO clients (name, city, email) 
+        VALUES ($1, $2, $3) 
+        RETURNING id, name, city, email, created_at
     """
-    Actualiza los datos de un cliente existente.
+    
+    row = await conn.fetchrow(query, name, city, email)
+    return dict(row)
+
+@with_db_connection
+async def update_client(client_id: int, name: str = None, city: str = None, 
+                        email: str = None, conn=None) -> Optional[Dict[str, Any]]:
+    """
+    Update an existing client's data.
     
     Args:
-        client_id: ID del cliente a actualizar.
-        name: Nuevo nombre del cliente (opcional).
-        city: Nueva ciudad del cliente (opcional).
-        email: Nuevo email del cliente (opcional).
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        client_id: ID of the client to update.
+        name: New client name (optional).
+        city: New client city (optional).
+        email: New client email (optional).
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Diccionario con los datos actualizados del cliente o None si no se encuentra.
+        Dictionary with updated client data or None if not found.
     """
-    was_conn_provided = conn is not None
-    pool = None
-    acquired_conn_internally = False
-
-    try:
-        if not was_conn_provided:
-            # Si no se proporcionó una conexión, obtenemos una nueva del pool
-            pool = await database.connect()
-            conn_for_read = await pool.acquire()
-            acquired_conn_internally = True # Marcar que la conexión fue adquirida aquí
-        else:
-            conn_for_read = conn # Usar la conexión proporcionada para la lectura inicial
-
-        # Primero obtenemos el cliente actual para verificar que existe
-        # y para mantener los campos no actualizados
-        client = await get_client_by_id(client_id, conn=conn_for_read) 
-        if not client:
-            return None
-        
-        # Si adquirimos la conexión internamente para la lectura, la liberamos antes de la escritura si no es la misma que usaremos para escribir.
-        # Sin embargo, es más simple usar la misma conexión si la obtuvimos del pool.
-        if acquired_conn_internally and conn_for_read != conn: # Este caso es complejo y mejor evitarlo
-             # Si la conexión para leer fue interna y diferente a la provista (conn), liberar la interna.
-             # Esto solo sería relevante si conn_for_read es diferente de conn cuando conn es provisto.
-             # Normalmente, si conn es provisto, conn_for_read será el mismo conn.
-             # Si conn no es provisto, conn_for_read se adquiere del pool.
-             # La lógica de liberación al final manejará la conexión adquirida internamente.
-             pass # La conexión principal (conn) es la que se usa para la escritura.
-
-        # Actualizamos solo los campos proporcionados, manteniendo los valores existentes para los no proporcionados
-        updated_name = name if name is not None else client['name']
-        updated_city = city if city is not None else client['city']
-        updated_email = email if email is not None else client['email']
-        
-        # Usamos la conexión 'conn' (ya sea la provista o la adquirida del pool) para la escritura
-        # Si no se proveyó conn y no se adquirió antes (lo cual no debería pasar por la lógica de arriba), se adquiere ahora.
-        # Pero la lógica actual ya define 'conn' si no fue provista.
-        if not conn: # Esto es una doble verificación, conn ya debería estar definido si no se proveyó.
-            if not pool: pool = await database.connect()
-            conn = await pool.acquire()
-            was_conn_provided = False # Se marca que fue adquirida internamente
-            acquired_conn_internally = True # Aunque ya debería estar marcado.
-
-        # Ejecuta la actualización del cliente
-        row = await conn.fetchrow(
-            """
-            UPDATE clients 
-            SET name = $1, city = $2, email = $3 
-            WHERE id = $4
-            RETURNING id, name, city, email, created_at
-            """,
-            updated_name, updated_city, updated_email, client_id
-        )
-        return dict(row) if row else None
-    finally:
-        # Solo liberamos la conexión si la creamos internamente
-        if acquired_conn_internally and conn: # Si la conexión principal fue adquirida internamente
-            if pool:
-                await pool.release(conn)
-        # Si se proporcionó conn externamente (was_conn_provided = True), no se libera aquí.
-
-async def delete_client(client_id, conn=None):
+    # First, get the current client to verify it exists and to maintain non-updated fields
+    current_client = await get_client_by_id(client_id, conn=conn)
+    if not current_client:
+        logger.info(f"Client with ID {client_id} not found for update")
+        return None
+    
+    # Update only the provided fields, keeping existing values for those not provided
+    updated_name = name if name is not None else current_client['name']
+    updated_city = city if city is not None else current_client['city']
+    updated_email = email if email is not None else current_client['email']
+    
+    query = """
+        UPDATE clients 
+        SET name = $1, city = $2, email = $3 
+        WHERE id = $4
+        RETURNING id, name, city, email, created_at
     """
-    Elimina un cliente de la base de datos.
+    
+    row = await conn.fetchrow(query, updated_name, updated_city, updated_email, client_id)
+    return dict(row) if row else None
+
+@with_db_connection
+async def delete_client(client_id: int, conn=None) -> bool:
+    """
+    Delete a client from the database.
     
     Args:
-        client_id: ID del cliente a eliminar.
-        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
+        client_id: ID of the client to delete.
+        conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
-        Boolean indicando si la eliminación fue exitosa.
+        Boolean indicating if deletion was successful.
     """
-    was_conn_provided = conn is not None
-    pool = None
-    acquired_conn_internally = False
+    # First check if the client exists
+    client = await get_client_by_id(client_id, conn=conn)
+    if not client:
+        logger.info(f"Client with ID {client_id} not found for deletion")
+        return False
+    
+    query = "DELETE FROM clients WHERE id = $1"
+    
+    result = await conn.execute(query, client_id)
+    # Parse the DELETE result to determine success
+    return "DELETE" in result
 
-    try:
-        if not was_conn_provided:
-            # Si no se proporcionó una conexión, obtenemos una nueva del pool
-            pool = await database.connect()
-            conn_for_read_and_delete = await pool.acquire()
-            acquired_conn_internally = True
-        else:
-            conn_for_read_and_delete = conn
-
-        # Primero verificamos que el cliente existe
-        client = await get_client_by_id(client_id, conn=conn_for_read_and_delete)
-        if not client:
-            return False # El cliente no existe, no se puede eliminar
+# Example of a function that uses a transaction
+@db_transaction
+async def transfer_client_data(source_client_id: int, target_client_id: int, conn=None) -> bool:
+    """
+    Transfer data from one client to another within a transaction.
+    Both source and target client must exist.
+    
+    Args:
+        source_client_id: ID of the source client.
+        target_client_id: ID of the target client.
+        conn: Optional database connection. If not provided, a new one is created.
         
-        # Eliminamos el cliente usando la misma conexión
-        result = await conn_for_read_and_delete.execute(
-            "DELETE FROM clients WHERE id = $1",
-            client_id
-        )
-        return result == "DELETE 1" # Retorna True si se eliminó exactamente un registro
-    finally:
-        # Solo liberamos la conexión si la creamos internamente
-        if acquired_conn_internally and conn_for_read_and_delete:
-            if pool:
-                await pool.release(conn_for_read_and_delete)
-        # Si se proporcionó conn externamente, no se libera aquí.
+    Returns:
+        Boolean indicating if the transfer was successful.
+    """
+    # Get source client
+    source_client = await conn.fetchrow(
+        "SELECT name, city, email FROM clients WHERE id = $1",
+        source_client_id
+    )
+    
+    if not source_client:
+        logger.warning(f"Source client with ID {source_client_id} not found")
+        return False
+    
+    # Get target client
+    target_client = await conn.fetchrow(
+        "SELECT id FROM clients WHERE id = $1",
+        target_client_id
+    )
+    
+    if not target_client:
+        logger.warning(f"Target client with ID {target_client_id} not found")
+        return False
+    
+    # Update invoices to point to target client
+    await conn.execute(
+        "UPDATE invoices SET client_id = $1 WHERE client_id = $2",
+        target_client_id, source_client_id
+    )
+    
+    # Delete source client
+    await conn.execute(
+        "DELETE FROM clients WHERE id = $1",
+        source_client_id
+    )
+    
+    logger.info(f"Successfully transferred data from client {source_client_id} to {target_client_id}")
+    return True

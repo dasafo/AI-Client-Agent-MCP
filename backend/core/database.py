@@ -2,47 +2,169 @@
 import asyncpg
 import os
 from dotenv import load_dotenv
+import logging
+from contextlib import asynccontextmanager
+from typing import Optional, Any
 
-# Carga las variables de entorno desde el archivo .env
+# Load environment variables from .env file
 load_dotenv()
 
-# Obtiene la URL de conexión a la base de datos desde las variables de entorno
+# Get database connection parameters from environment variables
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME")
+
+# Fallback to DATABASE_URL if individual parameters are not set
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# Configure logger
+logger = logging.getLogger(__name__)
 
 class Database:
     """
-    Clase para gestionar la conexión a la base de datos PostgreSQL.
-    Implementa un patrón singleton para el pool de conexiones.
+    Database connection manager for PostgreSQL.
+    Implements a singleton pattern for the connection pool.
     """
     def __init__(self):
-        # Inicializa el pool de conexiones como None
+        # Initialize connection pool as None
         self._pool = None
+        self._connection_params = self._get_connection_params()
+
+    def _get_connection_params(self) -> dict:
+        """
+        Get database connection parameters from environment variables.
+        
+        Returns:
+            Dictionary with connection parameters or DSN string.
+        """
+        # If DATABASE_URL is provided, use it directly
+        if DATABASE_URL:
+            return {"dsn": DATABASE_URL}
+        
+        # Otherwise, construct from individual parameters
+        if not all([DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME]):
+            logger.warning("Some database connection parameters are missing. Check your .env file.")
+            
+        return {
+            "user": DB_USER,
+            "password": DB_PASSWORD,
+            "host": DB_HOST,
+            "port": DB_PORT,
+            "database": DB_NAME
+        }
 
     async def connect(self):
         """
-        Establece la conexión con la base de datos si no existe.
-        Crea un pool de conexiones para reutilizarlas eficientemente.
+        Establishes a connection to the database if it doesn't exist.
+        Creates a connection pool for efficient reuse.
         
         Returns:
-            Pool de conexiones a la base de datos.
+            Database connection pool.
         """
         if not self._pool:
-            # Crea un nuevo pool de conexiones si no existe
-            self._pool = await asyncpg.create_pool(
-                dsn=DATABASE_URL, min_size=1, max_size=10
-            )
+            try:
+                # Create a new connection pool if it doesn't exist
+                self._pool = await asyncpg.create_pool(
+                    **self._connection_params,
+                    min_size=1,
+                    max_size=10
+                )
+                logger.info("Database connection pool created")
+            except Exception as e:
+                logger.error(f"Failed to create database connection pool: {e}")
+                raise
         return self._pool
 
     async def disconnect(self):
         """
-        Cierra el pool de conexiones a la base de datos si está activo.
+        Closes the database connection pool if active.
         """
         if self._pool:
-            # Cierra todas las conexiones en el pool
+            # Close all connections in the pool
             await self._pool.close()
             self._pool = None
+            logger.info("Database connection pool closed")
+    
+    @asynccontextmanager
+    async def connection(self):
+        """
+        Async context manager for database connections.
+        Automatically acquires and releases connections from the pool.
+        
+        Usage:
+            async with database.connection() as conn:
+                result = await conn.fetch("SELECT * FROM table")
+        
+        Yields:
+            Database connection from the pool.
+        """
+        pool = await self.connect()
+        conn = None
+        try:
+            conn = await pool.acquire()
+            yield conn
+        finally:
+            if conn:
+                await pool.release(conn)
 
+    async def execute(self, query: str, *args, **kwargs) -> str:
+        """
+        Executes a database query using a connection from the pool.
+        
+        Args:
+            query: SQL query to execute
+            *args, **kwargs: Parameters for the query
+            
+        Returns:
+            Query result
+        """
+        async with self.connection() as conn:
+            return await conn.execute(query, *args, **kwargs)
+            
+    async def fetch(self, query: str, *args, **kwargs) -> list:
+        """
+        Fetches multiple rows from the database.
+        
+        Args:
+            query: SQL query to execute
+            *args, **kwargs: Parameters for the query
+            
+        Returns:
+            List of query results
+        """
+        async with self.connection() as conn:
+            return await conn.fetch(query, *args, **kwargs)
+            
+    async def fetchrow(self, query: str, *args, **kwargs) -> Optional[dict]:
+        """
+        Fetches a single row from the database.
+        
+        Args:
+            query: SQL query to execute
+            *args, **kwargs: Parameters for the query
+            
+        Returns:
+            Query result as a dictionary or None if no result
+        """
+        async with self.connection() as conn:
+            row = await conn.fetchrow(query, *args, **kwargs)
+            return dict(row) if row else None
+            
+    async def fetchval(self, query: str, *args, **kwargs) -> Any:
+        """
+        Fetches a single value from the database.
+        
+        Args:
+            query: SQL query to execute
+            *args, **kwargs: Parameters for the query
+            
+        Returns:
+            Single value from query result
+        """
+        async with self.connection() as conn:
+            return await conn.fetchval(query, *args, **kwargs)
 
-# Instancia única de la clase Database para ser utilizada en toda la aplicación
+# Singleton instance of Database class to be used throughout the application
 database = Database()

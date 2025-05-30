@@ -1,13 +1,103 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Environment variables and secrets
+.env
+.env.*
+!env.example
+!.env.example
+*.env.local
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.virtualenv/
+
+# Logs
+logs/
+*.log
+app_logs/
+mcp_agent_debug.log
+startup_env.log
+
+# OS specific
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.project
+.pydevproject
+.settings/
+.classpath
+.factorypath
+
+# Project specific
+tests/.env.test
+cursor/
+
+# Custom entries for this project
+db_data/
+alembic/versions/*
+!alembic/versions/.gitkeep
+
+# Database dumps and backups
+*.sql
+*.dump
+*.backup
+!database/create_tables.sql
+
+# Portfolio files (markdown) should be version controlled
+!blog_portfolio.md
+!linkedin_post.md
 
 # C extensions
 *.so
 
 # Distribution / packaging
-.Python
 build/
 develop-eggs/
 dist/
@@ -95,26 +185,12 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.env.*
-!.env.example
-.venv/
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
 # Spyder project settings
 .spyderproject
 .spyproject
 
 # Rope project settings
 .ropeproject
-
-# PyDev project settings
-.pydevproject
 
 # PyCharm specific
 .idea/
@@ -131,15 +207,6 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Log files
-*.log
-logs/
-
-# Local development server logs (FastAPI, etc.)
-# You might have specific log files from uvicorn or your app
-# Example:
-# uvicorn_access.log
-
 # Temporary files
 *.tmp
 *.swp
@@ -150,9 +217,7 @@ logs/
 # *.onnx
 # *.pb
 
-# Our specific test environment file
-tests/.env.test
-
-# Our specific startup log
-startup_env.log
-mcp_agent_debug.log 
+# Local development server logs (FastAPI, etc.)
+# You might have specific log files from uvicorn or your app
+# Example:
+# uvicorn_access.log 

@@ -269,3 +269,180 @@ MIT License
 <p align="center">
   <sub>Created with ❤️ by David Salas - dasafodata</sub>
 </p>
+
+## 🔧 Architecture Overview
+
+The system follows a three-layer architecture:
+
+1. **Presentation Layer**: Implemented with FastMCP for conversational AI interaction
+2. **Business Logic Layer**: Modular services for client and invoice management
+3. **Data Layer**: PostgreSQL database with asynchronous connections
+
+## 📋 Key Features
+
+- Full CRUD operations for clients and invoices
+- Conversational AI interface using FastMCP
+- Asynchronous database operations with connection pooling
+- Transaction support for data integrity
+- Containerized with Docker and Docker Compose
+- Comprehensive test suite with transaction isolation
+
+## 🚀 Recent Improvements
+
+### Database Connection Management
+
+The database connection management has been refactored to use a more robust pattern:
+
+- Added an async context manager for database connections
+- Created decorators for simplified connection handling
+- Standardized error handling across database operations
+
+### Code Organization
+
+- Unified naming conventions and documentation style in English
+- Implemented consistent logging throughout the application
+- Removed debug prints and replaced with structured logging
+- Added type hints for better code readability and IDE support
+
+### Repository Cleanup
+
+- Added comprehensive `.gitignore` for proper version control
+- Removed logs, cache files, and other non-source files from the repository
+- Standardized file structure and naming conventions
+
+## 💻 Development Setup
+
+### Prerequisites
+
+- Python 3.11+
+- PostgreSQL 15+
+- Docker and Docker Compose (optional)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/AI-Client-Agent-MCP.git
+   cd AI-Client-Agent-MCP
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Create a `.env` file based on `env.example`:
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
+
+5. Run the database migrations (if using Docker, this is handled automatically):
+   ```bash
+   # Make sure PostgreSQL is running
+   python -m alembic upgrade head
+   ```
+
+### Running with Docker
+
+```bash
+docker-compose up -d
+```
+
+### Running Locally
+
+```bash
+python -m backend.server
+```
+
+## 🧪 Testing
+
+Run tests with pytest:
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test
+pytest tests/integration/test_client_services.py::test_create_and_get_client
+```
+
+## 📦 Project Structure
+
+```
+.
+├── backend/
+│   ├── api/             # API endpoints and tools
+│   ├── core/            # Core utilities and database connection
+│   ├── models/          # Pydantic data models
+│   ├── services/        # Business logic services
+│   ├── mcp_instance.py  # FastMCP instance definition
+│   └── server.py        # Server entry point
+├── database/
+│   └── create_tables.sql # Database schema
+├── tests/
+│   ├── integration/     # Integration tests
+│   ├── unit/            # Unit tests
+│   └── conftest.py      # Test fixtures
+├── .env.example         # Example environment variables
+├── docker-compose.yml   # Docker Compose configuration
+├── Dockerfile           # Docker configuration
+└── requirements.txt     # Python dependencies
+```
+
+## 🔌 Database Connection Patterns
+
+### Database Singleton
+
+The `Database` class in `backend/core/database.py` implements a singleton pattern for database connection management:
+
+```python
+# Usage example
+async with database.connection() as conn:
+    result = await conn.fetch("SELECT * FROM clients")
+```
+
+### Connection Decorators
+
+Two decorators are provided for simplified database operations:
+
+```python
+# For regular database operations
+@with_db_connection
+async def get_client(client_id, conn=None):
+    # conn is guaranteed to be available here
+    return await conn.fetchrow("SELECT * FROM clients WHERE id = $1", client_id)
+
+# For transactional operations
+@db_transaction
+async def transfer_data(source_id, target_id, conn=None):
+    # This function is executed within a transaction
+    # All operations will be committed or rolled back together
+    await conn.execute("UPDATE clients SET ...")
+    await conn.execute("DELETE FROM clients WHERE ...")
+```
+
+## 📊 API Reference
+
+See the [API Documentation](docs/api.md) for details on available endpoints and tools.
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes and commit: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature-name`
+5. Submit a pull request
+
+## 📜 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
