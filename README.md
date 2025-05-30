@@ -446,3 +446,99 @@ See the [API Documentation](docs/api.md) for details on available endpoints and 
 ## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🏗️ Arquitectura General
+
+```
++-------------------+         +-------------------+         +-------------------+
+| Conversational AI | <-----> | FastMCP (API/Tool)| <-----> | PostgreSQL DB     |
+| Agent / Client    |  HTTP   | Backend (FastAPI) |  async  | (asyncpg)         |
++-------------------+         +-------------------+         +-------------------+
+```
+
+- **Conversational AI Agent**: Puede ser un agente, script, o usuario usando curl/postman.
+- **FastMCP Backend**: Expone tools (endpoints) para gestión de clientes y facturas.
+- **PostgreSQL DB**: Almacena los datos, accedidos de forma asíncrona.
+
+---
+
+## 📦 Ejemplos de Petición/Respuesta (JSON)
+
+### Crear Cliente
+
+**Petición:**
+```json
+{
+  "name": "Ana López",
+  "city": "Madrid",
+  "email": "ana.lopez@example.com"
+}
+```
+
+**Respuesta:**
+```json
+{
+  "id": 101,
+  "name": "Ana López",
+  "city": "Madrid",
+  "email": "ana.lopez@example.com",
+  "created_at": "2024-06-01T12:34:56.789Z"
+}
+```
+
+### Crear Factura
+
+**Petición:**
+```json
+{
+  "client_id": 101,
+  "amount": "250.00",
+  "issued_at": "2024-06-01",
+  "due_date": "2024-07-01",
+  "status": "pending"
+}
+```
+
+**Respuesta:**
+```json
+{
+  "id": 201,
+  "client_id": 101,
+  "amount": "250.00",
+  "issued_at": "2024-06-01",
+  "due_date": "2024-07-01",
+  "status": "pending",
+  "created_at": "2024-06-01T12:35:00.000Z",
+  "updated_at": "2024-06-01T12:35:00.000Z"
+}
+```
+
+---
+
+## 🤖 Invocación de Tools vía Agente o curl
+
+### Usando curl (ejemplo: crear cliente)
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Ana López", "city": "Madrid", "email": "ana.lopez@example.com"}' \
+  http://localhost:8000/tools/create_client
+```
+
+### Usando un agente (pseudocódigo)
+
+```python
+import requests
+
+payload = {
+    "name": "Ana López",
+    "city": "Madrid",
+    "email": "ana.lopez@example.com"
+}
+response = requests.post("http://localhost:8000/tools/create_client", json=payload)
+print(response.json())
+```
+
+- Cambia la URL y el payload según el tool que quieras invocar.
+- Consulta la documentación de la API para los nombres exactos de los tools y sus parámetros.

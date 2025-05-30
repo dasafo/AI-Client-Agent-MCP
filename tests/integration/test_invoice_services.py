@@ -9,7 +9,8 @@ from backend.services.invoice_service import (
     create_invoice, 
     get_invoice_by_id,
     update_invoice,
-    get_invoices_by_client_id
+    get_invoices_by_client_id,
+    delete_invoice
 )
 from backend.models.invoice import InvoiceCreate, InvoiceUpdate
 
@@ -187,4 +188,37 @@ async def test_get_invoices_by_client_id(db_conn):
     # Verificamos los montos de las facturas (deben ser diferentes)
     invoice_amounts = [invoice["amount"] for invoice in client_invoices]
     assert Decimal("100.00") in invoice_amounts, "First invoice amount not found"
-    assert Decimal("200.00") in invoice_amounts, "Second invoice amount not found" 
+    assert Decimal("200.00") in invoice_amounts, "Second invoice amount not found"
+
+@pytest.mark.asyncio
+async def test_delete_invoice_success_and_error(db_conn):
+    # Crear cliente y factura
+    client = await create_client("Delete Invoice Client", "DelInv City", "delinv@example.com", conn=db_conn)
+    client_id = client["id"]
+    invoice_data = InvoiceCreate(client_id=client_id, amount=Decimal("100.00"))
+    invoice = await create_invoice(invoice_data, conn=db_conn)
+    invoice_id = invoice["id"]
+    # Borrar la factura
+    deleted = await delete_invoice(invoice_id, conn=db_conn)
+    assert deleted is True
+    # Intentar borrar de nuevo (debe fallar)
+    deleted_again = await delete_invoice(invoice_id, conn=db_conn)
+    assert deleted_again is False
+    # Verificar que ya no existe
+    assert await get_invoice_by_id(invoice_id, conn=db_conn) is None
+
+@pytest.mark.asyncio
+async def test_update_invoice_no_changes(db_conn):
+    # Crear cliente y factura
+    client = await create_client("Update Invoice No Change", "NoChangeInv City", "nochangeinv@example.com", conn=db_conn)
+    client_id = client["id"]
+    invoice_data = InvoiceCreate(client_id=client_id, amount=Decimal("200.00"))
+    invoice = await create_invoice(invoice_data, conn=db_conn)
+    invoice_id = invoice["id"]
+    # Intentar actualizar sin cambios
+    update_data = InvoiceUpdate()  # No fields set
+    updated = await update_invoice(invoice_id, update_data, conn=db_conn)
+    # Debe devolver la factura original
+    assert updated["id"] == invoice_id
+    assert updated["client_id"] == client_id
+    assert updated["amount"] == invoice["amount"] 

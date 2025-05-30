@@ -26,8 +26,8 @@ async def get_all_invoices(conn: Optional[asyncpg.Connection] = None) -> List[Di
         List of dictionaries containing invoice data.
     """
     query = """
-        SELECT id, client_id, amount, issued_at, due_date, status, created_at, updated_at 
-        FROM invoices 
+        SELECT id, client_id, amount, issued_at, due_date, status
+        FROM invoices
         ORDER BY id
     """
     
@@ -47,8 +47,8 @@ async def get_invoice_by_id(invoice_id: int, conn: Optional[asyncpg.Connection] 
         Dictionary with invoice data or None if not found.
     """
     query = """
-        SELECT id, client_id, amount, issued_at, due_date, status, created_at, updated_at 
-        FROM invoices 
+        SELECT id, client_id, amount, issued_at, due_date, status
+        FROM invoices
         WHERE id = $1
     """
     
@@ -68,9 +68,9 @@ async def get_invoices_by_client_id(client_id: int, conn: Optional[asyncpg.Conne
         List of dictionaries containing invoice data for the client.
     """
     query = """
-        SELECT id, client_id, amount, issued_at, due_date, status, created_at, updated_at 
-        FROM invoices 
-        WHERE client_id = $1 
+        SELECT id, client_id, amount, issued_at, due_date, status
+        FROM invoices
+        WHERE client_id = $1
         ORDER BY id
     """
     
@@ -95,7 +95,7 @@ async def create_invoice(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Con
     query = """
         INSERT INTO invoices (client_id, amount, issued_at, due_date, status) 
         VALUES ($1, $2, $3, $4, $5) 
-        RETURNING id, client_id, amount, issued_at, due_date, status, created_at, updated_at
+        RETURNING id, client_id, amount, issued_at, due_date, status
     """
     
     # Default values if not provided in the model
@@ -152,17 +152,14 @@ async def update_invoice(invoice_id: int, invoice_data: InvoiceUpdate, conn: Opt
         values.append(value)
         i += 1
     
-    # Add updated_at timestamp
-    set_clauses.append("updated_at = CURRENT_TIMESTAMP")
-    
     # Add invoice ID as the last parameter
     values.append(invoice_id)
     
     query = f"""
         UPDATE invoices 
         SET {', '.join(set_clauses)} 
-        WHERE id = ${i}
-        RETURNING id, client_id, amount, issued_at, due_date, status, created_at, updated_at
+        WHERE id = ${{i}}
+        RETURNING id, client_id, amount, issued_at, due_date, status
     """
     
     row = await conn.fetchrow(query, *values)
@@ -221,7 +218,7 @@ async def create_invoice_with_verification(invoice_data: InvoiceCreate, conn: Op
     query = """
         INSERT INTO invoices (client_id, amount, issued_at, due_date, status) 
         VALUES ($1, $2, $3, $4, $5) 
-        RETURNING id, client_id, amount, issued_at, due_date, status, created_at, updated_at
+        RETURNING id, client_id, amount, issued_at, due_date, status
     """
     
     # Default values if not provided in the model

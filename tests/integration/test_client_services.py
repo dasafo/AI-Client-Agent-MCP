@@ -1,6 +1,7 @@
 # tests/integration/test_client_services.py
 import pytest
-from backend.services.client_service import create_client, get_client_by_id
+from backend.services.client_service import create_client, get_client_by_id, delete_client, update_client
+from backend.models.client import ClientUpdate
 # Los modelos Pydantic como ClientCreate no son estrictamente necesarios aquí
 # ya que las funciones de servicio refactorizadas toman argumentos directos.
 # from backend.models.client import ClientCreate 
@@ -43,7 +44,6 @@ async def test_create_and_get_client(db_conn): # db_conn es la conexión transac
     assert created_client_dict["name"] == client_name
     assert created_client_dict["city"] == client_city
     assert created_client_dict["email"] == client_email
-    assert "created_at" in created_client_dict # También es bueno verificar que este campo existe
 
     # Ahora, recupera el cliente usando el servicio get_client_by_id
     # La función get_client_by_id ahora espera el ID primero, luego la conexión opcional.
@@ -55,4 +55,31 @@ async def test_create_and_get_client(db_conn): # db_conn es la conexión transac
     assert retrieved_client_dict["name"] == client_name
     assert retrieved_client_dict["city"] == client_city
     assert retrieved_client_dict["email"] == client_email
-    assert retrieved_client_dict["created_at"] == created_client_dict["created_at"] # created_at debería ser el mismo 
+
+@pytest.mark.asyncio
+async def test_delete_client_success_and_error(db_conn):
+    # Crear un cliente
+    client = await create_client("Delete Test", "Test City", "delete@example.com", conn=db_conn)
+    client_id = client["id"]
+    # Borrar el cliente
+    deleted = await delete_client(client_id, conn=db_conn)
+    assert deleted is True
+    # Intentar borrar de nuevo (debe fallar)
+    deleted_again = await delete_client(client_id, conn=db_conn)
+    assert deleted_again is False
+    # Verificar que ya no existe
+    assert await get_client_by_id(client_id, conn=db_conn) is None
+
+@pytest.mark.asyncio
+async def test_update_client_no_changes(db_conn):
+    # Crear un cliente
+    client = await create_client("Update No Change", "NoChange City", "nochange@example.com", conn=db_conn)
+    client_id = client["id"]
+    # Intentar actualizar sin cambios
+    update_data = ClientUpdate()  # No fields set
+    updated = await update_client(client_id, update_data, conn=db_conn)
+    # Debe devolver el cliente original
+    assert updated["id"] == client_id
+    assert updated["name"] == client["name"]
+    assert updated["city"] == client["city"]
+    assert updated["email"] == client["email"] 

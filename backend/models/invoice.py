@@ -49,11 +49,10 @@ class InvoiceOut(InvoiceBase):
     client_id: int  # Ensures client_id is always present in the output
     amount: Decimal = Field(..., max_digits=10, decimal_places=2)  # Ensures amount is always present
     issued_at: date  # Ensures issued_at is always present (has a default value in the DB)
+    due_date: Optional[date] = None
     status: str  # Ensures status is always present (has a default value in the DB)
-    # due_date remains optional
 
     class Config:
-        # orm_mode = True # pydantic v1
         from_attributes = True  # pydantic v2 - allows creating the model from ORM attributes
 
 class InvoiceDeleteResponse(BaseModel):

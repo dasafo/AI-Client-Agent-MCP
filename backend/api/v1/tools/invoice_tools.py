@@ -110,6 +110,7 @@ async def create_invoice_tool(
         new_invoice_data = await service_create_invoice(invoice_in)
         
         # Crea un objeto Pydantic para validación y serialización de la respuesta
+        # Solo se usan los campos existentes en la tabla
         new_invoice = InvoiceOut(**new_invoice_data)
         print(f"TOOL create_invoice responde: {new_invoice.model_dump()}")
         

@@ -68,40 +68,47 @@ async def create_client(name: str, city: str = "", email: str = "", conn=None) -
     return dict(row)
 
 @with_db_connection
-async def update_client(client_id: int, name: str = None, city: str = None, 
-                        email: str = None, conn=None) -> Optional[Dict[str, Any]]:
+async def update_client(client_id: int, client_data: 'ClientUpdate', conn=None) -> Optional[Dict[str, Any]]:
     """
-    Update an existing client's data.
+    Update an existing client's data using a dynamic query and exclude_unset, similar to update_invoice.
     
     Args:
         client_id: ID of the client to update.
-        name: New client name (optional).
-        city: New client city (optional).
-        email: New client email (optional).
+        client_data: ClientUpdate model with fields to update.
         conn: Optional database connection. If not provided, a new one is created.
         
     Returns:
         Dictionary with updated client data or None if not found.
     """
-    # First, get the current client to verify it exists and to maintain non-updated fields
+    # First verify the client exists
     current_client = await get_client_by_id(client_id, conn=conn)
     if not current_client:
         logger.info(f"Client with ID {client_id} not found for update")
         return None
     
-    # Update only the provided fields, keeping existing values for those not provided
-    updated_name = name if name is not None else current_client['name']
-    updated_city = city if city is not None else current_client['city']
-    updated_email = email if email is not None else current_client['email']
+    # Get fields to update (only those that were set)
+    update_fields = client_data.model_dump(exclude_unset=True)
+    if not update_fields:
+        logger.info(f"No fields to update for client ID {client_id}")
+        return current_client
     
-    query = """
+    # Build dynamic query based on provided fields
+    set_clauses = []
+    values = []
+    i = 1
+    for key, value in update_fields.items():
+        set_clauses.append(f"{key} = ${i}")
+        values.append(value)
+        i += 1
+    # Add client ID as the last parameter
+    values.append(client_id)
+    query = f"""
         UPDATE clients 
-        SET name = $1, city = $2, email = $3 
-        WHERE id = $4
+        SET {', '.join(set_clauses)} 
+        WHERE id = ${{i}}
         RETURNING id, name, city, email, created_at
     """
-    
-    row = await conn.fetchrow(query, updated_name, updated_city, updated_email, client_id)
+    row = await conn.fetchrow(query, *values)
     return dict(row) if row else None
 
 @with_db_connection

@@ -1,40 +1,26 @@
 # requirements.txt
 
-# Framework para crear agentes de IA conversacionales
+# Conversational AI agent framework
 fastmcp==2.5.1
 
-# Adaptador PostgreSQL asíncrono para Python
-asyncpg>=0.28
+# Asynchronous PostgreSQL adapter
+asyncpg>=0.28.0,<1.0.0
 
-# Gestor de variables de entorno desde archivos .env
-python-dotenv
+# Data validation and serialization
+pydantic>=2.5.0,<3.0.0
 
-# Cliente HTTP asíncrono para Python
-httpx
+# Web framework for APIs
+fastapi>=0.110.0,<1.0.0
 
-# Biblioteca para validación de datos y serialización
-pydantic
+# ASGI server for FastAPI
+uvicorn[standard]>=0.27.0,<1.0.0
 
-# Framework web para crear APIs con Python
-fastapi
+# Testing
+pytest>=7.4.0,<8.0.0
+pytest-asyncio>=0.23.0,<1.0.0
 
-# Servidor ASGI para aplicaciones web (incluye extras)
-uvicorn[standard]
-
-# ORM (Object-Relational Mapping) para bases de datos
-sqlalchemy
-
-# Herramienta de migración de bases de datos
-alembic
-
-# Framework para pruebas en Python
-pytest
-
-# Extensión para ejecutar pruebas asíncronas con pytest
-pytest-asyncio
-
-# Extensión para usar mocks en pruebas
-pytest-mock
-
-# Adaptador PostgreSQL para Python (binario precompilado)
-psycopg2-binary
+# Development and type checking (optional, recommended for contributors)
+# mypy
+# black
+# ruff
+# isort
