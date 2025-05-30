@@ -23,6 +23,7 @@
 *   ⚙️ **Flexible Configuration**: Environment variables for easy adaptation to different database setups and ports.
 *   🧪 **Extensive Test Coverage**: Comprehensive test suite with database isolation and proper connection management.
 *   💉 **Dependency Injection**: Services designed with dependency injection patterns to facilitate testing and flexibility.
+*   🧠 **Built-in AI Development**: Adding a `.cursor` directory enables AI-assisted coding directly within the project.
   
 
 ## 🚀 Quick Start (with Docker)
@@ -143,6 +144,8 @@ The application exposes its functionality through MCP tools. An MCP client can c
 ├── .dockerignore       # Files ignored by Docker during build
 ├── Dockerfile          # Instructions to build the application's Docker image
 ├── docker-compose.yml  # Docker services orchestration (app, db, pgadmin)
+├── .cursor/            # Optional directory for Cursor IDE integration as an MCP 
+│   └── ...             # This can be used to create AI-assisted prompts, workflows, and tools
 ├── backend/
 │   ├── __init__.py
 │   ├── server.py         # Entrypoint: FastAPI server and MCP runner
@@ -178,6 +181,21 @@ The application exposes its functionality through MCP tools. An MCP client can c
         ├── test_client_services.py  # Tests for client service functions
         └── test_invoice_services.py # Tests for invoice service functions
 ```
+
+## 🧠 AI-Assisted Development with Cursor
+
+Adding a `.cursor` directory to the project enables AI-assisted coding capabilities:
+
+* **AI Code Assistant**: Create the `.cursor` directory in your project root to enable AI-assisted development.
+* **Project-Specific MCP**: The `.cursor` directory can contain custom prompts, workflows, and tools.
+* **AI-Enhanced Workflows**:
+  * Automatically analyze code and suggest improvements
+  * Generate tests based on existing functions
+  * Assist with debugging and refactoring
+  * Provide context-aware documentation
+* **Team Collaboration**: Share standardized AI prompts and tools among team members.
+
+The `.cursor` directory works as an MCP (Master Control Program) within your project, enabling AI to better understand your codebase and assist with development tasks.
 
 ## ⚙️ Local Development (Non-Docker Alternative)
 
