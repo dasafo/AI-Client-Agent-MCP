@@ -21,6 +21,8 @@
 *   🤖 **MCP Tool Interface**: Exposes business logic through a set of tools for the Master Control Program, facilitating integration with AI agents and automated systems.
 *   🐳 **Complete Dockerized Environment**: Includes the application, PostgreSQL database, and pgAdmin 4, all managed with Docker Compose for consistent and straightforward setup and execution.
 *   ⚙️ **Flexible Configuration**: Environment variables for easy adaptation to different database setups and ports.
+*   🧪 **Extensive Test Coverage**: Comprehensive test suite with database isolation and proper connection management.
+*   💉 **Dependency Injection**: Services designed with dependency injection patterns to facilitate testing and flexibility.
   
 
 ## 🚀 Quick Start (with Docker)
@@ -158,20 +160,23 @@ The application exposes its functionality through MCP tools. An MCP client can c
 │   │   └── invoice.py
 │   └── services/         # Business logic and database interaction
 │       ├── __init__.py
-│       ├── client_service.py
-│       └── invoice_service.py
+│       ├── client_service.py   # Refactored with dependency injection for better testability
+│       └── invoice_service.py  # Refactored with dependency injection for better testability
 ├── database/
 │   └── create_tables.sql # SQL script to initialize DB schema (used by Docker)
 ├── app_logs/             # Directory for application logs (created by Docker if mapped)
 ├── requirements.txt      # Python project dependencies
 ├── README.md             # This file
 ├── env.example           # Template for the .env file
+├── pytest.ini            # Configuration for pytest and pytest-asyncio
 └── tests/                # Test suite (configured with Pytest)
     ├── .env.test         # Environment variables for tests
     ├── conftest.py       # Pytest fixtures and configuration
     ├── __init__.py
     ├── unit/             # Unit tests
     └── integration/      # Integration tests
+        ├── test_client_services.py  # Tests for client service functions
+        └── test_invoice_services.py # Tests for invoice service functions
 ```
 
 ## ⚙️ Local Development (Non-Docker Alternative)
@@ -190,15 +195,34 @@ For development or specific debugging scenarios outside Docker:
 
 ## 🧪 Testing
 
-The project is configured with `pytest`. Tests are organized into `unit/` and `integration/` directories within `tests/`.
+The project is configured with `pytest` and includes comprehensive integration tests for services.
 
-*   **Test Environment Configuration**: The `tests/.env.test` file is used to configure a separate test database.
-*   **Fixtures**: `tests/conftest.py` manages the creation and cleanup of the test database.
-*   **Run Tests**: From the project root (with the virtual environment activated):
+*   **Test Database Lifecycle**: 
+    *   A separate test database (e.g., `ai_client_mcp_db_test` as configured in `tests/.env.test`) is automatically created if it doesn't exist before tests run.
+    *   The schema from `database/create_tables.sql` is applied to this test database.
+    *   Each test runs within its own database transaction, which is rolled back after the test completes, ensuring test isolation.
+    *   The entire test database is automatically dropped after all tests in the session have finished.
+    *   This lifecycle is managed by fixtures in `tests/conftest.py`.
+*   **Service Architecture**:
+    *   Service functions are designed with dependency injection, accepting an optional database connection parameter.
+    *   This pattern allows tests to pass a controlled connection with transaction management.
+    *   Makes it easy to test database operations with proper isolation.
+*   **Test Environment Configuration**: The `tests/.env.test` file is used to configure the test database connection details, overriding any main `.env` settings for testing purposes.
+*   **Fixtures**: `tests/conftest.py` contains crucial fixtures for managing the database connections, transactions, and the overall test database lifecycle.
+*   **Run Tests**: From the project root (with the virtual environment activated, if not using Docker for testing):
     ```bash
+    # Run all tests
     pytest
+    
+    # Run with verbose output
+    pytest -v
+    
+    # Run only client service tests
+    pytest tests/integration/test_client_services.py
+    
+    # Run only invoice service tests
+    pytest tests/integration/test_invoice_services.py
     ```
-    You can run specific tests or directories (e.g., `pytest tests/unit`).
 
 ## 🛡️ Security (Basic Considerations)
 

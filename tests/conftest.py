@@ -3,6 +3,7 @@ import pytest
 import asyncpg
 import os
 from dotenv import load_dotenv
+import pytest_asyncio
 
 # Determine the root directory of the project (e.g., where .env might be)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -60,8 +61,9 @@ async def create_test_db_if_not_exists():
         if conn_sys:
             await conn_sys.close()
 
-@pytest.fixture(scope="session")
-async def db_engine_pool(event_loop): # pytest-asyncio provides event_loop
+# Este fixture se mantiene con scope="session" para reutilización eficiente
+@pytest_asyncio.fixture(scope="session")
+async def db_engine_pool():
     """
     Session-scoped fixture to create a test database (if needed),
     establish a connection pool, create tables, and tear down.
@@ -86,42 +88,58 @@ async def db_engine_pool(event_loop): # pytest-asyncio provides event_loop
     finally:
         print(f"Closing connection pool for test database {TEST_DB_NAME}...")
         await pool.close()
-        # Consider dropping the test database here if desired, for a completely clean state on next run
-        # conn_sys = await asyncpg.connect(user=TEST_DB_USER, password=TEST_DB_PASSWORD, host=TEST_DB_HOST, port=TEST_DB_PORT, database='postgres')
-        # print(f"Dropping test database {TEST_DB_NAME}...")
-        # await conn_sys.execute(f'DROP DATABASE IF EXISTS "{TEST_DB_NAME}"') # Use with caution
-        # await conn_sys.close()
-        # print("Test database dropped.")
+        # Drop the test database after all tests in the session are done
+        conn_sys = None
+        try:
+            # Connect to a system database (like 'postgres' or 'template1') to drop the test database
+            conn_sys = await asyncpg.connect(
+                user=TEST_DB_USER, password=TEST_DB_PASSWORD,
+                host=TEST_DB_HOST, port=TEST_DB_PORT, database='postgres' # Connect to default 'postgres' db
+            )
+            print(f"Dropping test database {TEST_DB_NAME}...")
+            # It's important to ensure no other connections are active.
+            # Forcing disconnection of other users can be done with:
+            # await conn_sys.execute(f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{TEST_DB_NAME}';")
+            # However, this is aggressive. DROP DATABASE should work if the pool is properly closed.
+            await conn_sys.execute(f'DROP DATABASE IF EXISTS "{TEST_DB_NAME}"')
+            print(f"Test database '{TEST_DB_NAME}' dropped.")
+        except Exception as e:
+            print(f"ERROR: Could not drop test database '{TEST_DB_NAME}'. It might be in use or not exist. {e}")
+            print("You might need to drop it manually if issues persist.")
+        finally:
+            if conn_sys:
+                await conn_sys.close()
 
+# Restauramos la dependencia en db_engine_pool para asegurar secuencia correcta,
+# pero mantenemos la conexión directa
+@pytest_asyncio.fixture
+async def db_conn(db_engine_pool):  # Añadimos db_engine_pool como parámetro
+    """
+    Function-scoped fixture that creates a direct connection to the test database,
+    starts a transaction, and rolls it back after the test.
+    
+    Takes db_engine_pool as a parameter to ensure the test database is created
+    before trying to connect, but creates its own direct connection to avoid
+    scope issues.
+    """
+    # Conexión directa a la DB de prueba, sin usar el pool
+    conn = await asyncpg.connect(
+        user=TEST_DB_USER, password=TEST_DB_PASSWORD,
+        database=TEST_DB_NAME, host=TEST_DB_HOST, port=TEST_DB_PORT
+    )
 
-@pytest.fixture
-async def db_conn(db_engine_pool):
-    """
-    Function-scoped fixture to get a connection from the pool
-    and run the test within a transaction that is rolled back.
-    """
-    async with db_engine_pool.acquire() as connection:
-        # Start a new transaction for this test
-        transaction = connection.transaction()
-        await transaction.start()
-        print("DB transaction started for test.")
-        
-        yield connection # Provide the connection to the test function
-        
+    transaction = conn.transaction()
+    await transaction.start()
+    print("DB transaction started for test.")
+    
+    try:
+        yield conn # Provide the connection to the test function
+    finally:
         # Rollback the transaction after the test is done
         print("Rolling back DB transaction for test.")
         await transaction.rollback()
         print("DB transaction rolled back.")
-
-# You might want a fixture to automatically clear tables if not using transactions per test,
-# or if some tests need to commit. For transaction-based tests, this is often not needed.
-# @pytest.fixture(autouse=True)
-# async def clear_tables_for_each_test(db_conn):
-#     """ Fixture to clear tables before each test if not using transactions or for specific cases. """
-#     print("Clearing tables (clients, invoices)...")
-#     await db_conn.execute("DELETE FROM invoices;") # Order matters due to foreign keys
-#     await db_conn.execute("DELETE FROM clients;")
-#     await db_conn.execute("ALTER SEQUENCE clients_id_seq RESTART WITH 1;")
-#     await db_conn.execute("ALTER SEQUENCE invoices_id_seq RESTART WITH 1;")
-#     print("Tables cleared.")
-#     yield 
+        
+        # Close the connection
+        await conn.close()
+        print("DB connection closed.")
