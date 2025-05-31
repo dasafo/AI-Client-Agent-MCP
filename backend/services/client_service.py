@@ -95,17 +95,17 @@ async def update_client(client_id: int, client_data: 'ClientUpdate', conn=None) 
     # Build dynamic query based on provided fields
     set_clauses = []
     values = []
-    i = 1
-    for key, value in update_fields.items():
-        set_clauses.append(f"{key} = ${i}")
+    for idx, (key, value) in enumerate(update_fields.items(), start=1):
+        set_clauses.append(f"{key} = ${idx}")
         values.append(value)
-        i += 1
     # Add client ID as the last parameter
     values.append(client_id)
+    set_clause_str = ', '.join(set_clauses)
+    id_placeholder = f"${len(values)}"
     query = f"""
         UPDATE clients 
-        SET {', '.join(set_clauses)} 
-        WHERE id = ${{i}}
+        SET {set_clause_str} 
+        WHERE id = {id_placeholder}
         RETURNING id, name, city, email, created_at
     """
     row = await conn.fetchrow(query, *values)

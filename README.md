@@ -249,26 +249,6 @@ The project is configured with `pytest` and includes comprehensive integration t
 *   **Port Exposure**: `docker-compose.yml` exposes ports to `localhost`. For production, carefully review port exposure to external networks and configure firewalls.
 *   **Dependencies**: Keep dependencies updated to mitigate known vulnerabilities.
 
-## 🤝 Contributing
-
-Contributions are welcome. Please follow standard development practices (fork, branch, PR) and consider adding tests for new features.
-
-## 📄 License
-
-MIT License
-
-## 👤 Author
-
-**David Salas**
-- Website: [dasafodata.com](https://dasafodata.com)
-- GitHub: [@dasafo](https://github.com/dasafo)
-- LinkedIn: [David Salas](https://www.linkedin.com/in/dasafodata/)
-
----
-
-<p align="center">
-  <sub>Created with ❤️ by David Salas - dasafodata</sub>
-</p>
 
 ## 🔧 Architecture Overview
 
@@ -542,3 +522,24 @@ print(response.json())
 
 - Cambia la URL y el payload según el tool que quieras invocar.
 - Consulta la documentación de la API para los nombres exactos de los tools y sus parámetros.
+
+## 🤝 Contributing
+
+Contributions are welcome. Please follow standard development practices (fork, branch, PR) and consider adding tests for new features.
+
+## 📄 License
+
+MIT License
+
+## 👤 Author
+
+**David Salas**
+- Website: [dasafodata.com](https://dasafodata.com)
+- GitHub: [@dasafo](https://github.com/dasafo)
+- LinkedIn: [David Salas](https://www.linkedin.com/in/dasafodata/)
+
+---
+
+<p align="center">
+  <sub>Created with ❤️ by David Salas - dasafodata</sub>
+</p>

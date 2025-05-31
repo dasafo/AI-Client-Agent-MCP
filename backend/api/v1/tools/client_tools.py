@@ -14,6 +14,7 @@ from backend.models.client import (
 )
 from typing import List, Dict, Any
 from datetime import datetime
+from backend.core.database import database
 
 # Herramientas para la gestión de clientes
 # Estas funciones exponen la funcionalidad de gestión de clientes a través del MCP (Master Control Program)
@@ -116,42 +117,23 @@ async def create_client_tool(name: str, city: str = "", email: str = "") -> dict
 async def update_client_tool(client_id: int, name: str = "", city: str = "", email: str = "") -> dict:
     """
     Actualizar datos de un cliente existente
-    
-    Args:
-        client_id: ID del cliente a actualizar
-        name: Nuevo nombre del cliente (opcional)
-        city: Nueva ciudad del cliente (opcional)
-        email: Nuevo email del cliente (opcional)
     """
     try:
-        # Crea un modelo Pydantic para validar los datos de actualización
-        client_update_data = ClientUpdate(
-            name=name if name else None, 
-            city=city if city else None, 
-            email=email if email else None
-        )
-        
-        # Extrae solo los campos no vacíos para la actualización parcial
-        update_data_dict = client_update_data.model_dump(exclude_unset=True)
-        if not update_data_dict:
-            # Si no hay datos para actualizar, devuelve un mensaje de error
+        # Crea el modelo Pydantic solo con los campos no vacíos
+        update_fields = {k: v for k, v in {"name": name, "city": city, "email": email}.items() if v}
+        if not update_fields:
             return {"success": False, "error": "No se proporcionaron datos para actualizar"}
-        
-        # Llama al servicio para actualizar el cliente en la base de datos
-        updated_client_data = await service_update_client(client_id, **update_data_dict)
+        client_update_data = ClientUpdate(**update_fields)
+        # Llama al servicio con el modelo, no con kwargs
+        updated_client_data = await service_update_client(client_id, client_update_data)
         if not updated_client_data:
-            # Si no se encuentra el cliente o hay error al actualizar, devuelve un mensaje
             return {"success": False, "error": f"Cliente con ID {client_id} no encontrado o error al actualizar"}
-        
         # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(updated_client_data.get('created_at'), datetime):
             updated_client_data['created_at'] = updated_client_data['created_at'].isoformat()
-
-        # Crea un objeto Pydantic para validación y serialización de la respuesta
         updated_client = ClientOut(**updated_client_data)
         return {"success": True, "client": updated_client.model_dump()}
     except Exception as e:
-        # Captura cualquier error y lo devuelve en la respuesta
         return {"success": False, "error": str(e)}
 
 
