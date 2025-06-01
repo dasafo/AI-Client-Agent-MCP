@@ -40,6 +40,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data # Volumen persistente para datos de PostgreSQL
       - ./database/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql # Script para inicializar la BD
+      - ./database/managers.sql:/docker-entrypoint-initdb.d/managers.sql # Script para inicializar la BD
     environment:
       POSTGRES_USER: ${DB_USER} # Tomado de .env
       POSTGRES_PASSWORD: ${DB_PASSWORD} # Tomado de .env

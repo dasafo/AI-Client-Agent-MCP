@@ -7,6 +7,7 @@ from pathlib import Path
 from backend.mcp_instance import mcp
 from backend.api.v1.tools import client_tools
 from backend.api.v1.tools import invoice_tools
+from backend.api.v1.tools import report_tools
 
 # Main server file for AI Client Agent MCP
 # Configures and starts the FastMCP server with all registered tools

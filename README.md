@@ -1,7 +1,7 @@
 # 🗂️ AI Client Agent MCP
 
 <div align="center">
-  <img src="https://img.shields.io/badge/FastAPI-Python-009688?style=for-the-badge&logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/FastMCP-Python-009688?style=for-the-badge&logo=python" alt="FastMCP">
   <img src="https://img.shields.io/badge/PostgreSQL-15--alpine-336791?style=for-the-badge&logo=postgresql" alt="PostgreSQL 15-alpine">
   <img src="https://img.shields.io/badge/pgAdmin_4-latest-2496ED?style=for-the-badge&logo=pgadmin" alt="pgAdmin 4">
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker" alt="Docker Compose">
@@ -10,7 +10,7 @@
 
 <br>
 
-> **AI Client Agent MCP** is a robust backend system for managing clients and their invoices (or quotes), designed to be operated by an AI Agent or programmatically. Built with FastAPI and PostgreSQL, and fully containerized for easy setup and deployment.
+> **AI Client Agent MCP** is a robust backend system for managing clients and their invoices (or quotes), designed to be operated by an AI Agent or programmatically. Built with FastMCP and PostgreSQL, and fully containerized for easy setup and deployment.
 
 ## 🎯 Core Features
 
@@ -18,7 +18,7 @@
 *   📄 **Invoice/Quote Administration**: Full CRUD operations for invoices, linked to clients, including status management (`pending`, `completed`, `canceled`).
 *   🚀 **Asynchronous Performance**: Leverages `asyncio` and `asyncpg` for efficient, non-blocking database operations.
 *   🛡️ **Rigorous Data Validation**: Employs Pydantic models to ensure data integrity across all interactions.
-*   🤖 **MCP Tool Interface**: Exposes business logic through a set of tools for the Master Control Program, facilitating integration with AI agents and automated systems.
+*   🤖 **MCP Tool Interface**: Exposes business logic through a set of tools for the Master Control Program (FastMCP), facilitating integration with AI agents and automated systems.
 *   🐳 **Complete Dockerized Environment**: Includes the application, PostgreSQL database, and pgAdmin 4, all managed with Docker Compose for consistent and straightforward setup and execution.
 *   ⚙️ **Flexible Configuration**: Environment variables for easy adaptation to different database setups and ports.
 *   🧪 **Extensive Test Coverage**: Comprehensive test suite with database isolation and proper connection management.
@@ -63,7 +63,7 @@ DB_NAME=AI-Agent-ddbb
 DB_PORT=5432 # Internal port for PostgreSQL in its container
 
 # Application Server Configuration
-SERVER_PORT=8000 # Port on localhost to access the API
+SERVER_PORT=8000 # Port on localhost to access the MCP server
 
 # pgAdmin 4 Configuration
 PGADMIN_EMAIL=admin@example.com # Email for pgAdmin web interface login
@@ -74,7 +74,7 @@ PGADMIN_PORT=5050         # Port on localhost to access pgAdmin
 
 ### 4. Accessing Services
 
-*   **API (AI Client Agent MCP)**: `http://localhost:${SERVER_PORT}` (e.g., `http://localhost:8000`)
+*   **MCP Server (AI Client Agent MCP)**: Connect via an MCP client (e.g., Cursor IDE) to the agent, which internally uses the services. The `server.py` runs on `http://localhost:${SERVER_PORT}` but is primarily for FastMCP's internal communication, not direct HTTP REST access.
 *   **pgAdmin 4**: `http://localhost:${PGADMIN_PORT}` (e.g., `http://localhost:5050`)
     *   **pgAdmin Login**: Use `PGADMIN_EMAIL` and `PGADMIN_PASSWORD`.
     *   **Connect to Project DB from pgAdmin**:
@@ -110,14 +110,14 @@ docker compose exec db psql -U ${DB_USER} -d ${DB_NAME}
 
 The `AI Client Agent MCP` can serve as a foundation for various automated systems:
 
-*   **AI-Powered CRM**: An AI agent could use the tools to create and update clients based on email or chat interactions and draft invoices.
-*   **Customer Support with Account Management**: Integrate with a ticketing system where an AI agent can query client information and recent invoices for more contextualized responses.
-*   **Semi-Automated Billing Tool**: A simple interface (or bot) allowing non-technical users to request invoice creation for existing clients, with an AI agent validating or completing data.
-*   **AI-Assisted Data Migration**: Use an agent to read data from a legacy system and utilize the `create_client` and `create_invoice` tools to populate this new system.
+*   **AI-Powered CRM**: An AI agent could use the FastMCP tools to create and update clients based on email or chat interactions and draft invoices.
+*   **Customer Support with Account Management**: Integrate with a ticketing system where an AI agent can query client information and recent invoices for more contextualized responses using FastMCP tools.
+*   **Semi-Automated Billing Tool**: A simple interface (or bot) allowing non-technical users to request invoice creation for existing clients, with an AI agent validating or completing data via FastMCP tools.
+*   **AI-Assisted Data Migration**: Use an agent to read data from a legacy system and utilize the `create_client` and `create_invoice` FastMCP tools to populate this new system.
 
-## 🛠️ MCP Tools (API Endpoints)
+## 🛠️ MCP Tools
 
-The application exposes its functionality through MCP tools. An MCP client can connect to the server (default: `http://localhost:${SERVER_PORT}/sse`) to invoke them.
+The application exposes its functionality through FastMCP tools. An MCP client (like Cursor IDE or a custom script using the `fastmcp` library) can connect to the server and invoke them.
 
 ### Client Tools
 *   `list_clients`: Lists all clients.
@@ -142,13 +142,13 @@ The application exposes its functionality through MCP tools. An MCP client can c
 .AI-Client-Agent-MCP/
 ├── .env                # Local environment variables (DB credentials, ports, etc.)
 ├── .dockerignore       # Files ignored by Docker during build
-├── Dockerfile          # Instructions to build the application's Docker image
+├── Dockerfile          # Instructions to build the application\'s Docker image
 ├── docker-compose.yml  # Docker services orchestration (app, db, pgadmin)
 ├── .cursor/            # Optional directory for Cursor IDE integration as an MCP 
 │   └── ...             # This can be used to create AI-assisted prompts, workflows, and tools
 ├── backend/
 │   ├── __init__.py
-│   ├── server.py         # Entrypoint: FastAPI server and MCP runner
+│   ├── server.py         # Entrypoint: FastMCP server runner
 │   ├── mcp_instance.py   # Centralized MCP Agent instance
 │   ├── api/
 │   │   └── v1/
@@ -156,7 +156,8 @@ The application exposes its functionality through MCP tools. An MCP client can c
 │   │       └── tools/      # MCP Tool definitions
 │   │           ├── __init__.py
 │   │           ├── client_tools.py
-│   │           └── invoice_tools.py
+│   │           ├── invoice_tools.py
+│   │           └── report_tools.py
 │   ├── models/           # Pydantic models for validation and serialization
 │   │   ├── __init__.py
 │   │   ├── client.py
@@ -164,9 +165,11 @@ The application exposes its functionality through MCP tools. An MCP client can c
 │   └── services/         # Business logic and database interaction
 │       ├── __init__.py
 │       ├── client_service.py   # Refactored with dependency injection for better testability
-│       └── invoice_service.py  # Refactored with dependency injection for better testability
+│       ├── invoice_service.py  # Refactored with dependency injection for better testability
+│       └── report_service.py   # Service for report generation logic
 ├── database/
-│   └── create_tables.sql # SQL script to initialize DB schema (used by Docker)
+│   ├── create_tables.sql # SQL script to initialize DB schema (used by Docker)
+│   └── managers.sql      # SQL script to create and populate the managers table
 ├── app_logs/             # Directory for application logs (created by Docker if mapped)
 ├── requirements.txt      # Python project dependencies
 ├── README.md             # This file
@@ -208,7 +211,7 @@ For development or specific debugging scenarios outside Docker:
 ### Steps
 1.  **Virtual Environment & Dependencies**: `python -m venv .venv`, `source .venv/bin/activate`, `pip install -r requirements.txt`.
 2.  **Configure `.env`**: Ensure `DB_HOST` and `DB_PORT` point to your local PostgreSQL instance.
-3.  **Manual Database Setup**: Create the database (`DB_NAME`) and run `psql -U ${DB_USER} -d ${DB_NAME} -a -f database/create_tables.sql`.
+3.  **Manual Database Setup**: Create the database (`DB_NAME`) and run `psql -U ${DB_USER} -d ${DB_NAME} -a -f database/create_tables.sql`. Also run `psql -U ${DB_USER} -d ${DB_NAME} -a -f database/managers.sql` if you intend to use the reporting tool.
 4.  **Run Application**: `python -m backend.server`.
 
 ## 🧪 Testing
@@ -543,3 +546,23 @@ MIT License
 <p align="center">
   <sub>Created with ❤️ by David Salas - dasafodata</sub>
 </p>
+
+## 🖥️ Configuración de pgAdmin 4 y conexión al servidor de base de datos
+
+Cuando levantes el proyecto por primera vez con Docker Compose, pgAdmin 4 estará disponible en `http://localhost:${PGADMIN_PORT}` (por defecto, `http://localhost:5050`).
+
+### Pasos para conectar pgAdmin 4 a tu base de datos PostgreSQL:
+
+1. Accede a la interfaz web de pgAdmin 4 en tu navegador.
+2. Inicia sesión con el email y contraseña definidos en tu `.env` (`PGADMIN_EMAIL` y `PGADMIN_PASSWORD`).
+3. Haz clic derecho en "Servers" y selecciona **Register > Server...**
+4. En la pestaña **General**, ponle un nombre (por ejemplo, `AI Client DB`).
+5. En la pestaña **Connection**:
+   - **Host name/address:** `db`
+   - **Port:** `5432`
+   - **Maintenance database:** el valor de `DB_NAME` (por defecto, `AI-Agent-ddbb`)
+   - **Username:** el valor de `DB_USER`
+   - **Password:** el valor de `DB_PASSWORD`
+6. Haz clic en **Save**. Ahora podrás ver y gestionar las tablas y datos desde pgAdmin.
+
+> **Nota:** Mientras no borres el volumen `pgadmin_data`, tus conexiones y configuraciones de pgAdmin se conservarán. Si ejecutas `docker compose down -v`, tendrás que volver a registrar el servidor manualmente.
