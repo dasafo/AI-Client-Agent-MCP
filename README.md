@@ -566,3 +566,60 @@ Cuando levantes el proyecto por primera vez con Docker Compose, pgAdmin 4 estar�
 6. Haz clic en **Save**. Ahora podrás ver y gestionar las tablas y datos desde pgAdmin.
 
 > **Nota:** Mientras no borres el volumen `pgadmin_data`, tus conexiones y configuraciones de pgAdmin se conservarán. Si ejecutas `docker compose down -v`, tendrás que volver a registrar el servidor manualmente.
+
+## 🧠 Informes inteligentes y trazabilidad
+
+El sistema permite generar informes comerciales inteligentes (resumen ejecutivo, detallado, morosidad, etc.) para cualquier cliente o para todos, en cualquier periodo. Los informes se generan usando IA (OpenAI) y se envían por email únicamente a managers/jefes autorizados (validados en la tabla `managers`).
+
+- El informe siempre indica explícitamente a quién se envía (nombre y email del manager).
+- El historial de informes generados se almacena en la tabla `reports` para trazabilidad y auditoría.
+- Si el destinatario no está en la tabla `managers`, la petición es rechazada.
+
+### Ejemplo de petición en lenguaje natural
+
+> Dame un informe detallado de los presupuestos completados del cliente Carolina Padilla y mándalo a David Salas
+
+### Ejemplo de petición estructurada
+
+```python
+generate_report(
+    client_name="Carolina Padilla",
+    period="",  # vacío para todas las fechas
+    manager_name="David Salas",
+    manager_email="d.salasforns@gmail.com",
+    report_type="detallado, solo completados"
+)
+```
+
+### Ejemplo de respuesta del sistema
+
+```
+Informe enviado a David Salas <d.salasforns@gmail.com>
+```
+
+El informe generado incluye una nota al final indicando el destinatario autorizado.
+
+---
+
+## 🗂️ Historial de reportes
+
+Todos los informes generados se almacenan en la tabla `reports` con los siguientes campos:
+- client_id, client_name (pueden ser NULL para informes globales)
+- period (puede ser NULL)
+- manager_email, manager_name
+- report_type
+- report_text (contenido completo del informe)
+- created_at
+
+Puedes consultar el historial de reportes desde la base de datos o crear un tool para ello.
+
+---
+
+## ⚠️ Seguridad y validación
+
+- Solo los managers/jefes registrados en la tabla `managers` pueden recibir informes.
+- El sistema valida siempre el destinatario antes de enviar cualquier información.
+- El destinatario debe ser indicado explícitamente en cada petición.
+- El informe y la respuesta del sistema siempre muestran a quién se ha enviado.
+
+---
