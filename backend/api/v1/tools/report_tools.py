@@ -8,7 +8,7 @@ from typing import Optional
 import smtplib
 from email.message import EmailMessage
 
-def build_report_prompt(invoices, client_name, period, report_type):
+def build_report_prompt(invoices, client_name, period, report_type, manager_name=None, manager_email=None):
     if period:
         periodo_texto = f"para el periodo {period}"
     else:
@@ -33,6 +33,8 @@ Datos de facturación:
 
 Sé claro, profesional y conciso. El informe debe estar listo para ser enviado a un manager verificado que esté en la tabla managers.
 """
+    if manager_name and manager_email:
+        resumen += f"\n\nNota: Este informe será enviado a {manager_name} <{manager_email}>."
     return resumen
 
 async def send_email_with_report(to_email, report_text, subject="Informe"):
@@ -95,7 +97,7 @@ async def generate_report(
         return {"success": False, "message": f"No hay facturas para el cliente '{client_name}' en el periodo '{period}'."}
     
     # 3. Generar prompt y llamar al LLM (nueva API OpenAI)
-    prompt = build_report_prompt(invoices, client_name, period, report_type)
+    prompt = build_report_prompt(invoices, client_name, period, report_type, manager['name'], manager['email'])
     from openai import OpenAI
     api_key = os.getenv("OPENAI_API_KEY")
     client = OpenAI(api_key=api_key)
@@ -122,4 +124,4 @@ async def generate_report(
     await send_email_with_report(manager['email'], report_text, subject=f"Informe {report_type}")
 
     # 5. Confirmación
-    return {"success": True, "message": f"Informe enviado a {manager['email']}"}
+    return {"success": True, "message": f"Informe enviado a {manager['name']} <{manager['email']}>"}
