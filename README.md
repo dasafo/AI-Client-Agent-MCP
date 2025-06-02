@@ -303,7 +303,7 @@ Contributions are welcome. Please follow standard development practices (fork, b
 
 ## 📄 License
 
-MIT License
+This project is licensed under the [MIT License](LICENSE). See the LICENSE file for the full legal text and terms of use.
 
 ## 👤 Author
 
