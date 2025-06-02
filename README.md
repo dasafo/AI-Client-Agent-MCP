@@ -189,7 +189,8 @@ response = generate_report(
     period="",  # empty for all dates
     manager_name="David Salas",
     manager_email="dsf@protonmail.com",
-    report_type="detailed, only completed"
+    report_type="detailed, only completed",
+    api_token="changeme-token-dev"  # Must match REPORT_API_TOKEN
 )
 print(response)
 ```
@@ -342,3 +343,22 @@ This repository currently mixes English and Spanish in documentation and code co
 
 - **FastMCP**: This project uses [FastMCP](https://github.com/dasafo/fastmcp) version 2.5.1 (see `requirements.txt`). FastMCP is a framework for exposing business logic as tools for AI agents and automation.
 - **OpenAI Model**: The report generation uses the GPT-4 (or GPT-4o) model via the OpenAI API. You can configure the model version in the backend as needed.
+
+### Security for Report Generation
+
+The `generate_report` tool now requires an API token for every request. This token must be provided as the `api_token` parameter and must match the value set in the `REPORT_API_TOKEN` environment variable. This prevents unauthorized or anonymous access to sensitive report data, even if the MCP interface is exposed.
+
+Example usage:
+
+```python
+response = generate_report(
+    client_name="Carolina Padilla",
+    period="",
+    manager_name="David Salas",
+    manager_email="dsf@protonmail.com",
+    report_type="detailed, only completed",
+    api_token="changeme-token-dev"  # Must match REPORT_API_TOKEN
+)
+```
+
+If the token is missing or invalid, the tool will return an error and will not generate or send the report.

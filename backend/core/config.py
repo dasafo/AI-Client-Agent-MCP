@@ -28,4 +28,7 @@ SMTP_PASS = os.getenv('SMTP_PASS')
 # pgAdmin configuration
 PGADMIN_EMAIL = os.getenv('PGADMIN_EMAIL')
 PGADMIN_PASSWORD = os.getenv('PGADMIN_PASSWORD')
-PGADMIN_PORT = int(os.getenv('PGADMIN_PORT', 5050)) 
+PGADMIN_PORT = int(os.getenv('PGADMIN_PORT', 5050))
+
+# New variable
+REPORT_API_TOKEN = os.getenv("REPORT_API_TOKEN", "changeme-token-dev") 

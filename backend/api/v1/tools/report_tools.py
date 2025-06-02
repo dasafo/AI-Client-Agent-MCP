@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import io
 import base64
 import re
-from backend.core.config import SMTP_USER, SMTP_HOST, SMTP_PORT, SMTP_PASS, OPENAI_API_KEY, DATABASE_URL
+from backend.core.config import SMTP_USER, SMTP_HOST, SMTP_PORT, SMTP_PASS, OPENAI_API_KEY, DATABASE_URL, REPORT_API_TOKEN
 from backend.core.logging import get_logger
 from backend.models.report import ReportOut
 
@@ -181,15 +181,19 @@ async def guardar_informe_db(client_obj, client_name, period, manager, report_ty
 
 @mcp.tool(
     name="generate_report",
-    description="Genera un informe comercial y profesional y lo envía al manager autorizado por email."
+    description="Genera un informe comercial y profesional y lo envía al manager autorizado por email. Requiere un api_token válido."
 )
 async def generate_report(
     client_name: str,
     period: str,
     manager_name: str,
     manager_email: str,
-    report_type: str
+    report_type: str,
+    api_token: str
 ):
+    if api_token != REPORT_API_TOKEN:
+        logger.warning("Intento de acceso con api_token inválido en generate_report")
+        return {"success": False, "error": "Invalid or missing API token. Access denied."}
     try:
         manager = await obtener_manager_autorizado(manager_name, manager_email)
         if not manager:
