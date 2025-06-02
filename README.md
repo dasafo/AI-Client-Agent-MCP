@@ -39,7 +39,7 @@ Below is a simple architecture diagram illustrating the main components and thei
 
 Or as a Markdown image:
 
-![Architecture Diagram](https://raw.githubusercontent.com/dasafo/AI-Client-Agent-MCP/main/docs/architecture-diagram.png)
+![Architecture Diagram](https://github.com/dasafo/AI-Client-Agent-MCP/blob/main/img/flux.png)
 
 - **Conversational AI Agent**: Can be an agent, script, or user using an MCP client (e.g., Cursor IDE).
 - **FastMCP Backend**: Exposes tools (endpoints) for client and invoice management.
