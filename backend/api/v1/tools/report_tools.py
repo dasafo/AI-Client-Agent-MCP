@@ -3,7 +3,6 @@ from backend.services.manager_service import get_manager_by_name, get_manager_by
 from backend.services.client_service import get_all_clients, get_client_by_id
 from backend.services.invoice_service import get_invoices_by_client_id, get_all_invoices
 import openai
-import os
 from typing import Optional
 import smtplib
 from email.message import EmailMessage
@@ -13,10 +12,10 @@ import matplotlib.pyplot as plt
 import io
 import base64
 import re
-import logging
+from backend.core.config import SMTP_USER, SMTP_HOST, SMTP_PORT, SMTP_PASS, OPENAI_API_KEY, DATABASE_URL
+from backend.core.logging import get_logger
 
-# Configurar logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def build_report_prompt(invoices, client_name, period, report_type, manager_name=None, manager_email=None):
     if period:
@@ -76,7 +75,7 @@ def clean_llm_html(html_text):
 async def send_email_with_report(to_email, report_text, subject="Informe", invoices=None):
     msg = EmailMessage()
     msg['Subject'] = subject
-    msg['From'] = os.getenv("SMTP_USER")
+    msg['From'] = SMTP_USER
     msg['To'] = to_email
     msg.set_content("Este correo contiene un informe en HTML. Si no lo ves correctamente, usa un cliente compatible.")
 
@@ -90,10 +89,10 @@ async def send_email_with_report(to_email, report_text, subject="Informe", invoi
             html_report = img_tag + html_report
     msg.add_alternative(html_report, subtype='html')
 
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = int(os.getenv("SMTP_PORT", 465))
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_pass = os.getenv("SMTP_PASS")
+    smtp_host = SMTP_HOST
+    smtp_port = SMTP_PORT
+    smtp_user = SMTP_USER
+    smtp_pass = SMTP_PASS
 
     try:
         with smtplib.SMTP_SSL(smtp_host, smtp_port) as smtp:
@@ -145,8 +144,7 @@ async def generate_report(
     # 3. Generar prompt y llamar al LLM (nueva API OpenAI)
     prompt = build_report_prompt(invoices, client_name, period, report_type, manager['name'], manager['email'])
     from openai import OpenAI
-    api_key = os.getenv("OPENAI_API_KEY")
-    openai_client = OpenAI(api_key=api_key)
+    openai_client = OpenAI(api_key=OPENAI_API_KEY)
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
@@ -172,7 +170,7 @@ async def generate_report(
     # 4.5 Guardar el informe en la tabla reports
     # Obtener client_id si hay cliente, si no, None
     client_id = client_obj['id'] if client_name and 'client_obj' in locals() and client_obj else None
-    db_url = os.getenv("DATABASE_URL")
+    db_url = DATABASE_URL
     try:
         conn = await asyncpg.connect(dsn=db_url)
         await save_report(

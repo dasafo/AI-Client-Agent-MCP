@@ -5,12 +5,12 @@ This module provides decorators to simplify database connection handling in serv
 """
 
 import functools
-import logging
+from backend.core.logging import get_logger
 from typing import Callable, Optional, Any, TypeVar
 import asyncpg
 from backend.core.database import database
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Type variables for better type hints
 T = TypeVar('T')
@@ -50,15 +50,21 @@ def with_db_connection(func: F) -> F:
                     kwargs['conn'] = new_conn
                     # Call the wrapped function with the new connection
                     return await func(*args, **kwargs)
+            except asyncpg.PostgresError as e:
+                logger.error(f"PostgreSQL error in {func.__name__}: {e}", exc_info=True)
+                raise
             except Exception as e:
-                logger.error(f"Database error in {func.__name__}: {e}")
+                logger.error(f"Unexpected error in {func.__name__}: {e}", exc_info=True)
                 raise
         else:
             # If a connection was provided, just use it
             try:
                 return await func(*args, **kwargs)
+            except asyncpg.PostgresError as e:
+                logger.error(f"PostgreSQL error in {func.__name__}: {e}", exc_info=True)
+                raise
             except Exception as e:
-                logger.error(f"Database error in {func.__name__}: {e}")
+                logger.error(f"Unexpected error in {func.__name__}: {e}", exc_info=True)
                 raise
     
     return wrapper
@@ -102,8 +108,11 @@ def db_transaction(func: F) -> F:
                     result = await func(*args, **kwargs)
                 
                 return result
+            except asyncpg.PostgresError as e:
+                logger.error(f"PostgreSQL transaction error in {func.__name__}: {e}", exc_info=True)
+                raise
             except Exception as e:
-                logger.error(f"Transaction error in {func.__name__}: {e}")
+                logger.error(f"Unexpected transaction error in {func.__name__}: {e}", exc_info=True)
                 raise
             finally:
                 # Release the connection
@@ -114,8 +123,11 @@ def db_transaction(func: F) -> F:
             async with conn.transaction():
                 try:
                     return await func(*args, **kwargs)
+                except asyncpg.PostgresError as e:
+                    logger.error(f"PostgreSQL transaction error in {func.__name__}: {e}", exc_info=True)
+                    raise
                 except Exception as e:
-                    logger.error(f"Transaction error in {func.__name__}: {e}")
+                    logger.error(f"Unexpected transaction error in {func.__name__}: {e}", exc_info=True)
                     raise
     
     return wrapper 

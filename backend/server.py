@@ -1,9 +1,8 @@
-import logging
-import os
 import sys
-import datetime
-from dotenv import load_dotenv
+import os
 from pathlib import Path
+from backend.core.config import SERVER_HOST, SERVER_PORT
+from backend.core.logging import get_logger
 from backend.mcp_instance import mcp
 from backend.api.v1.tools import client_tools
 from backend.api.v1.tools import invoice_tools
@@ -12,15 +11,7 @@ from backend.api.v1.tools import report_tools
 # Main server file for AI Client Agent MCP
 # Configures and starts the FastMCP server with all registered tools
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Logs directory setup
 LOGS_DIR = Path("/app/logs")
@@ -29,8 +20,9 @@ LOGS_DIR.mkdir(exist_ok=True, parents=True)
 # File handlers for logging
 try:
     # Configure file logging
+    import logging
     file_handler = logging.FileHandler(LOGS_DIR / "server.log")
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    file_handler.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | %(name)s | %(message)s'))
     logger.addHandler(file_handler)
     
     # Log startup details
@@ -41,16 +33,8 @@ try:
 except IOError as e:
     logger.warning(f"Could not set up file logging: {e}")
 
-# Add root directory to sys.path to allow relative imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Server configuration from environment variables
-HOST = os.getenv("SERVER_HOST", "localhost")
-PORT = int(os.getenv("SERVER_PORT", 8000))
-
+HOST = SERVER_HOST
+PORT = SERVER_PORT
 
 if __name__ == "__main__":
     # Main entry point when script is executed directly

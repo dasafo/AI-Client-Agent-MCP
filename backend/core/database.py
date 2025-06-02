@@ -1,26 +1,11 @@
 # backend/core/database.py
 import asyncpg
-import os
-from dotenv import load_dotenv
-import logging
+from backend.core.config import DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME, DATABASE_URL
+from backend.core.logging import get_logger
 from contextlib import asynccontextmanager
 from typing import Optional, Any
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Get database connection parameters from environment variables
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME")
-
-# Fallback to DATABASE_URL if individual parameters are not set
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Configure logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class Database:
     """

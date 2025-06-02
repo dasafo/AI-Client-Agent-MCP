@@ -2,13 +2,12 @@
 from backend.core.database import database
 from backend.core.decorators import with_db_connection, db_transaction
 from typing import List, Dict, Any, Optional
-import logging
-
-# Configure logger
-logger = logging.getLogger(__name__)
+from backend.core.logging import get_logger
 
 # Client management services
 # These functions implement business logic and database access for clients
+
+logger = get_logger(__name__)
 
 @with_db_connection
 async def get_all_clients(conn=None) -> List[Dict[str, Any]]:

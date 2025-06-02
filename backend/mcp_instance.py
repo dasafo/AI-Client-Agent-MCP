@@ -1,10 +1,9 @@
 # backend/mcp_instance.py
 # Definition of the central Master Control Program (MCP) instance
 
-import logging
+from backend.core.logging import get_logger
 
-# Configure logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Try to import FastMCP from fastmcp or mcp
 try:

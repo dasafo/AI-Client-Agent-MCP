@@ -1,6 +1,10 @@
 from backend.core.database import database
 from backend.models.manager import ManagerOut
 from typing import List, Optional, Dict, Any
+from backend.core.logging import get_logger
+
+# Logger para el servicio de managers
+logger = get_logger(__name__)
 
 # Servicio para consultar managers autorizados
 

@@ -5,14 +5,13 @@ from typing import List, Optional, Dict, Any
 from decimal import Decimal
 from datetime import date
 import asyncpg
-import logging
-
-# Configure logger
-logger = logging.getLogger(__name__)
+from backend.core.logging import get_logger
 
 # Invoice management services
 # These functions implement business logic and database access for invoices
 # All functions accept an optional connection to facilitate transactions and testing
+
+logger = get_logger(__name__)
 
 @with_db_connection
 async def get_all_invoices(conn: Optional[asyncpg.Connection] = None) -> List[Dict[str, Any]]:

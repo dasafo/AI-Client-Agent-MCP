@@ -1,44 +1,26 @@
 import asyncpg
 import asyncio
-
-SQL = '''
-CREATE TABLE IF NOT EXISTS managers (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    role TEXT, -- opcional: gerente, dueño, etc.
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT INTO managers (name, email, role)
-SELECT * FROM (VALUES
-    ('David Salas', 'd.salasforns@gmail.com', 'boss'),
-    ('Pedro Salas', 'dsf@protonmail.com', 'boss'),
-    ('Ana Ruiz', 'ana.ruiz@empresa.com', 'manager'),
-    ('Luis Martínez', 'luis.martinez@negocio.com', 'manager')
-) AS v(name, email, role)
-WHERE NOT EXISTS (
-    SELECT 1 FROM managers WHERE managers.email = v.email
-);
-'''
+from backend.core.config import DB_USER, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
 
 async def init_managers():
-    import os
-    user = os.getenv('DB_USER')
-    password = os.getenv('DB_PASSWORD')
-    database = os.getenv('DB_NAME')
-    host = os.getenv('DB_HOST')
-    port = int(os.getenv('DB_PORT', 5432))
-    conn = await asyncpg.connect(user=user, password=password, database=database, host=host, port=port)
+    user = DB_USER
+    password = DB_PASSWORD
+    database = DB_NAME
+    host = DB_HOST
+    port = int(DB_PORT) if DB_PORT else 5432
 
+    # Leer el SQL desde el archivo externo
+    import os
+    sql_path = os.path.join(os.path.dirname(__file__), '../../database/managers.sql')
+    with open(sql_path, 'r', encoding='utf-8') as f:
+        sql = f.read()
+
+    conn = await asyncpg.connect(user=user, password=password, database=database, host=host, port=port)
     try:
-        await conn.execute(SQL)
+        await conn.execute(sql)
         print('Tabla managers creada y registros insertados (si no existían).')
     finally:
         await conn.close()
 
 if __name__ == "__main__":
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
     asyncio.run(init_managers())
