@@ -12,6 +12,12 @@
 
 > **AI Client Agent MCP** is a robust backend system for managing clients and their invoices (or quotes), designed to be operated by an AI Agent or programmatically. Built with FastMCP and PostgreSQL, and fully containerized for easy setup and deployment.
 
+## 📚 Documentation
+
+- [Quick Start Guide](docs/quickstart.md): Step-by-step setup and development instructions
+- [Database Patterns](docs/database_patterns.md): Database connection and transaction management
+- [Full Documentation Index](docs/index.md): All docs, guides, and references
+
 ## 🔧 Architecture Overview
 
 Below is a simple architecture diagram illustrating the main components and their interactions:

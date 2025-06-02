@@ -28,11 +28,9 @@ from backend.core.decorators import with_db_connection
 async def get_client(client_id: int, conn=None):
     """
     Retrieve a client by ID.
-    
     Args:
         client_id: The ID of the client to retrieve
         conn: Optional database connection (will be provided by the decorator if None)
-        
     Returns:
         Client record or None if not found
     """
@@ -66,31 +64,25 @@ from backend.core.decorators import db_transaction
 async def transfer_client_data(source_id: int, target_id: int, conn=None):
     """
     Transfer all data from one client to another and delete the source client.
-    
     Args:
         source_id: The ID of the source client
         target_id: The ID of the target client
         conn: Optional database connection (will be provided by the decorator if None)
-        
     Returns:
         True if the transfer was successful
     """
     # Verify both clients exist
     source = await conn.fetchrow("SELECT * FROM clients WHERE id = $1", source_id)
     target = await conn.fetchrow("SELECT * FROM clients WHERE id = $1", target_id)
-    
     if not source or not target:
         return False
-    
     # Update all invoices to point to the target client
     await conn.execute(
         "UPDATE invoices SET client_id = $1 WHERE client_id = $2", 
         target_id, source_id
     )
-    
     # Delete the source client
     await conn.execute("DELETE FROM clients WHERE id = $1", source_id)
-    
     return True
 ```
 
@@ -136,10 +128,8 @@ async def get_client_data(client_id: int, conn=None):
 async def update_client_with_validation(client_id: int, new_data: dict, conn=None):
     # This will use the transaction's connection
     current_data = await get_client_data(client_id, conn)
-    
     if not current_data:
         return False
-    
     # Proceed with update
     await conn.execute(
         "UPDATE clients SET name = $1, email = $2 WHERE id = $3",
@@ -200,10 +190,8 @@ async def test_client_creation(db_conn):
     # The db_conn fixture provides a connection in a transaction
     # that will be rolled back after the test
     client_data = {"name": "Test Client", "email": "test@example.com"}
-    
     # Pass the connection explicitly in tests
     result = await create_client(client_data, conn=db_conn)
-    
     assert result["name"] == "Test Client"
     assert result["id"] is not None
 ``` 
