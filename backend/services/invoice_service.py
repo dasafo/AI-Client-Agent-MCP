@@ -24,14 +24,20 @@ async def get_all_invoices(conn: Optional[asyncpg.Connection] = None) -> List[Di
     Returns:
         List of dictionaries containing invoice data.
     """
-    query = """
-        SELECT id, client_id, amount, issued_at, due_date, status
-        FROM invoices
-        ORDER BY id
-    """
-    
-    rows = await conn.fetch(query)
-    return [dict(row) for row in rows]
+    try:
+        query = """
+            SELECT id, client_id, amount, issued_at, due_date, status
+            FROM invoices
+            ORDER BY id
+        """
+        rows = await conn.fetch(query)
+        return [dict(row) for row in rows]
+    except asyncpg.PostgresError as e:
+        logger.error(f"Database error in get_all_invoices: {e}")
+        return []
+    except Exception as e:
+        logger.error(f"Unexpected error in get_all_invoices: {e}")
+        return []
 
 @with_db_connection
 async def get_invoice_by_id(invoice_id: int, conn: Optional[asyncpg.Connection] = None) -> Optional[Dict[str, Any]]:
@@ -45,14 +51,20 @@ async def get_invoice_by_id(invoice_id: int, conn: Optional[asyncpg.Connection] 
     Returns:
         Dictionary with invoice data or None if not found.
     """
-    query = """
-        SELECT id, client_id, amount, issued_at, due_date, status
-        FROM invoices
-        WHERE id = $1
-    """
-    
-    row = await conn.fetchrow(query, invoice_id)
-    return dict(row) if row else None
+    try:
+        query = """
+            SELECT id, client_id, amount, issued_at, due_date, status
+            FROM invoices
+            WHERE id = $1
+        """
+        row = await conn.fetchrow(query, invoice_id)
+        return dict(row) if row else None
+    except asyncpg.PostgresError as e:
+        logger.error(f"Database error in get_invoice_by_id: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error in get_invoice_by_id: {e}")
+        return None
 
 @with_db_connection
 async def get_invoices_by_client_id(client_id: int, conn: Optional[asyncpg.Connection] = None) -> List[Dict[str, Any]]:
@@ -66,15 +78,21 @@ async def get_invoices_by_client_id(client_id: int, conn: Optional[asyncpg.Conne
     Returns:
         List of dictionaries containing invoice data for the client.
     """
-    query = """
-        SELECT id, client_id, amount, issued_at, due_date, status
-        FROM invoices
-        WHERE client_id = $1
-        ORDER BY id
-    """
-    
-    rows = await conn.fetch(query, client_id)
-    return [dict(row) for row in rows]
+    try:
+        query = """
+            SELECT id, client_id, amount, issued_at, due_date, status
+            FROM invoices
+            WHERE client_id = $1
+            ORDER BY id
+        """
+        rows = await conn.fetch(query, client_id)
+        return [dict(row) for row in rows]
+    except asyncpg.PostgresError as e:
+        logger.error(f"Database error in get_invoices_by_client_id: {e}")
+        return []
+    except Exception as e:
+        logger.error(f"Unexpected error in get_invoices_by_client_id: {e}")
+        return []
 
 @with_db_connection
 async def create_invoice(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Connection] = None) -> Dict[str, Any]:
@@ -91,30 +109,32 @@ async def create_invoice(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Con
     Raises:
         Exception: If invoice creation fails.
     """
-    query = """
-        INSERT INTO invoices (client_id, amount, issued_at, due_date, status) 
-        VALUES ($1, $2, $3, $4, $5) 
-        RETURNING id, client_id, amount, issued_at, due_date, status
-    """
-    
-    # Default values if not provided in the model
-    issued_at = invoice_data.issued_at if invoice_data.issued_at is not None else date.today()
-    status = invoice_data.status if invoice_data.status is not None else 'pending'
-    
-    row = await conn.fetchrow(
-        query,
-        invoice_data.client_id, 
-        invoice_data.amount,
-        issued_at,
-        invoice_data.due_date,
-        status
-    )
-    
-    if not row:
-        logger.error("Failed to create invoice")
-        raise Exception("Failed to create invoice")
-    
-    return dict(row)
+    try:
+        query = """
+            INSERT INTO invoices (client_id, amount, issued_at, due_date, status) 
+            VALUES ($1, $2, $3, $4, $5) 
+            RETURNING id, client_id, amount, issued_at, due_date, status
+        """
+        issued_at = invoice_data.issued_at if invoice_data.issued_at is not None else date.today()
+        status = invoice_data.status if invoice_data.status is not None else 'pending'
+        row = await conn.fetchrow(
+            query,
+            invoice_data.client_id, 
+            invoice_data.amount,
+            issued_at,
+            invoice_data.due_date,
+            status
+        )
+        if not row:
+            logger.error("Failed to create invoice")
+            return {"success": False, "error": "Failed to create invoice"}
+        return dict(row)
+    except asyncpg.PostgresError as e:
+        logger.error(f"Database error in create_invoice: {e}")
+        return {"success": False, "error": str(e)}
+    except Exception as e:
+        logger.error(f"Unexpected error in create_invoice: {e}")
+        return {"success": False, "error": str(e)}
 
 @with_db_connection
 async def update_invoice(invoice_id: int, invoice_data: InvoiceUpdate, conn: Optional[asyncpg.Connection] = None) -> Optional[Dict[str, Any]]:
@@ -129,40 +149,37 @@ async def update_invoice(invoice_id: int, invoice_data: InvoiceUpdate, conn: Opt
     Returns:
         Dictionary with updated invoice data or None if not found.
     """
-    # First verify the invoice exists
-    current_invoice = await get_invoice_by_id(invoice_id, conn=conn)
-    if not current_invoice:
-        logger.info(f"Invoice with ID {invoice_id} not found for update")
+    try:
+        current_invoice = await get_invoice_by_id(invoice_id, conn=conn)
+        if not current_invoice:
+            logger.info(f"Invoice with ID {invoice_id} not found for update")
+            return None
+        update_fields = invoice_data.model_dump(exclude_unset=True)
+        if not update_fields:
+            logger.info(f"No fields to update for invoice ID {invoice_id}")
+            return current_invoice
+        set_clauses = []
+        values = []
+        i = 1
+        for key, value in update_fields.items():
+            set_clauses.append(f"{key} = ${i}")
+            values.append(value)
+            i += 1
+        values.append(invoice_id)
+        query = f"""
+            UPDATE invoices 
+            SET {', '.join(set_clauses)} 
+            WHERE id = ${i}
+            RETURNING id, client_id, amount, issued_at, due_date, status
+        """
+        row = await conn.fetchrow(query, *values)
+        return dict(row) if row else None
+    except asyncpg.PostgresError as e:
+        logger.error(f"Database error in update_invoice: {e}")
         return None
-    
-    # Get fields to update (only those that were set)
-    update_fields = invoice_data.model_dump(exclude_unset=True)
-    if not update_fields:
-        logger.info(f"No fields to update for invoice ID {invoice_id}")
-        return current_invoice
-    
-    # Build dynamic query based on provided fields
-    set_clauses = []
-    values = []
-    i = 1
-    
-    for key, value in update_fields.items():
-        set_clauses.append(f"{key} = ${i}")
-        values.append(value)
-        i += 1
-    
-    # Add invoice ID as the last parameter
-    values.append(invoice_id)
-    
-    query = f"""
-        UPDATE invoices 
-        SET {', '.join(set_clauses)} 
-        WHERE id = ${i}
-        RETURNING id, client_id, amount, issued_at, due_date, status
-    """
-    
-    row = await conn.fetchrow(query, *values)
-    return dict(row) if row else None
+    except Exception as e:
+        logger.error(f"Unexpected error in update_invoice: {e}")
+        return None
 
 @with_db_connection
 async def delete_invoice(invoice_id: int, conn: Optional[asyncpg.Connection] = None) -> bool:
@@ -176,16 +193,20 @@ async def delete_invoice(invoice_id: int, conn: Optional[asyncpg.Connection] = N
     Returns:
         Boolean indicating if deletion was successful.
     """
-    # First check if the invoice exists
-    invoice = await get_invoice_by_id(invoice_id, conn=conn)
-    if not invoice:
-        logger.info(f"Invoice with ID {invoice_id} not found for deletion")
+    try:
+        invoice = await get_invoice_by_id(invoice_id, conn=conn)
+        if not invoice:
+            logger.info(f"Invoice with ID {invoice_id} not found for deletion")
+            return False
+        query = "DELETE FROM invoices WHERE id = $1"
+        result = await conn.execute(query, invoice_id)
+        return "DELETE" in result
+    except asyncpg.PostgresError as e:
+        logger.error(f"Database error in delete_invoice: {e}")
         return False
-    
-    query = "DELETE FROM invoices WHERE id = $1"
-    
-    result = await conn.execute(query, invoice_id)
-    return "DELETE" in result
+    except Exception as e:
+        logger.error(f"Unexpected error in delete_invoice: {e}")
+        return False
 
 @db_transaction
 async def create_invoice_with_verification(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Connection] = None) -> Dict[str, Any]:
@@ -202,43 +223,20 @@ async def create_invoice_with_verification(invoice_data: InvoiceCreate, conn: Op
     Raises:
         Exception: If client doesn't exist or invoice creation fails.
     """
-    # First verify that the client exists
-    client = await conn.fetchrow(
-        "SELECT id FROM clients WHERE id = $1",
-        invoice_data.client_id
-    )
-    
-    if not client:
-        error_msg = f"Cannot create invoice: Client with ID {invoice_data.client_id} does not exist"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
-    
-    # Create the invoice within the same transaction
-    query = """
-        INSERT INTO invoices (client_id, amount, issued_at, due_date, status) 
-        VALUES ($1, $2, $3, $4, $5) 
-        RETURNING id, client_id, amount, issued_at, due_date, status
-    """
-    
-    # Default values if not provided in the model
-    issued_at = invoice_data.issued_at if invoice_data.issued_at is not None else date.today()
-    status = invoice_data.status if invoice_data.status is not None else 'pending'
-    
-    row = await conn.fetchrow(
-        query,
-        invoice_data.client_id, 
-        invoice_data.amount,
-        issued_at,
-        invoice_data.due_date,
-        status
-    )
-    
-    if not row:
-        logger.error("Failed to create invoice")
-        raise Exception("Failed to create invoice")
-    
-    # Log the successful creation
-    invoice_id = dict(row)["id"]
-    logger.info(f"Successfully created invoice {invoice_id} for client {invoice_data.client_id}")
-    
-    return dict(row) 
+    try:
+        client = await conn.fetchrow(
+            "SELECT id FROM clients WHERE id = $1",
+            invoice_data.client_id
+        )
+        if not client:
+            error_msg = f"Cannot create invoice: Client with ID {invoice_data.client_id} does not exist"
+            logger.error(error_msg)
+            return {"success": False, "error": error_msg}
+        # Reutiliza la lógica de inserción
+        return await create_invoice(invoice_data, conn=conn)
+    except asyncpg.PostgresError as e:
+        logger.error(f"Database error in create_invoice_with_verification: {e}")
+        return {"success": False, "error": str(e)}
+    except Exception as e:
+        logger.error(f"Unexpected error in create_invoice_with_verification: {e}")
+        return {"success": False, "error": str(e)} 

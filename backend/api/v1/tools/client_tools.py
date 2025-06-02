@@ -28,6 +28,8 @@ async def list_clients() -> dict:
     try:
         # Obtiene todos los clientes desde el servicio
         clients_data = await service_get_all_clients()
+        if isinstance(clients_data, dict) and not clients_data.get("success", True):
+            return clients_data
         processed_clients = []
         
         # Procesa cada cliente para manejar correctamente las fechas
@@ -61,6 +63,9 @@ async def get_client(client_id: int) -> dict:
         if not client_data:
             # Si no se encuentra el cliente, devuelve un mensaje de error
             return {"success": False, "error": f"Cliente con ID {client_id} no encontrado"}
+        
+        if isinstance(client_data, dict) and not client_data.get("success", True):
+            return client_data
         
         # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(client_data.get('created_at'), datetime):
@@ -98,6 +103,9 @@ async def create_client_tool(name: str, city: str = "", email: str = "") -> dict
         # Llama al servicio para crear el cliente en la base de datos
         new_client_data = await service_create_client(client_in.name, client_in.city, client_in.email)
         
+        if isinstance(new_client_data, dict) and not new_client_data.get("success", True):
+            return new_client_data
+        
         # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(new_client_data.get('created_at'), datetime):
             new_client_data['created_at'] = new_client_data['created_at'].isoformat()
@@ -128,6 +136,8 @@ async def update_client_tool(client_id: int, name: str = "", city: str = "", ema
         updated_client_data = await service_update_client(client_id, client_update_data)
         if not updated_client_data:
             return {"success": False, "error": f"Cliente con ID {client_id} no encontrado o error al actualizar"}
+        if isinstance(updated_client_data, dict) and not updated_client_data.get("success", True):
+            return updated_client_data
         # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(updated_client_data.get('created_at'), datetime):
             updated_client_data['created_at'] = updated_client_data['created_at'].isoformat()
@@ -154,6 +164,9 @@ async def delete_client_tool(client_id: int) -> ClientDeleteResponse:
         if not client_to_delete_data:
             # Si no se encuentra el cliente, devuelve un mensaje de error
             return ClientDeleteResponse(success=False, message=f"Cliente con ID {client_id} no encontrado")
+        
+        if isinstance(client_to_delete_data, dict) and not client_to_delete_data.get("success", True):
+            return ClientDeleteResponse(success=False, message=client_to_delete_data.get("error", "Error desconocido"))
         
         # Convierte objetos datetime a formato ISO para la serialización JSON
         if isinstance(client_to_delete_data.get('created_at'), datetime):

@@ -115,66 +115,46 @@ async def generate_report(
     manager_email: str,
     report_type: str
 ):
-    # 1. Validar destinatario
-    manager = None
-    if manager_name:
-        manager = await get_manager_by_name(manager_name)
-    elif manager_email:
-        manager = await get_manager_by_email(manager_email)
-    if not manager:
-        raise ValueError("Destinatario no autorizado para recibir informes.")
-    
-    # 2. Recopilar datos
-    if client_name:
-        clients = await get_all_clients()
-        client_obj = next((c for c in clients if c['name'].lower() == client_name.lower()), None)
-        if not client_obj:
-            raise ValueError("Cliente no encontrado.")
-        invoices = await get_invoices_by_client_id(client_obj['id'])
-    else:
-        invoices = await get_all_invoices()
-
-    # Filtrar por periodo si se proporciona
-    if period:
-        invoices = [i for i in invoices if period in str(i.get('issued_at', ''))]
-
-    # Validación: si no hay facturas, no llamar a OpenAI
-    if not invoices:
-        return {"success": False, "message": f"No hay facturas para el cliente '{client_name}' en el periodo '{period}'."}
-    
-    # 3. Generar prompt y llamar al LLM (nueva API OpenAI)
-    prompt = build_report_prompt(invoices, client_name, period, report_type, manager['name'], manager['email'])
-    from openai import OpenAI
-    openai_client = OpenAI(api_key=OPENAI_API_KEY)
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini-2024-07-18",
-        messages=[
-            {
-                "role": "system",
-                "content": (
+    try:
+        manager = None
+        if manager_name:
+            manager = await get_manager_by_name(manager_name)
+        elif manager_email:
+            manager = await get_manager_by_email(manager_email)
+        if not manager:
+            return {"success": False, "error": "Destinatario no autorizado para recibir informes."}
+        if client_name:
+            clients = await get_all_clients()
+            client_obj = next((c for c in clients if c['name'].lower() == client_name.lower()), None)
+            if not client_obj:
+                return {"success": False, "error": "Cliente no encontrado."}
+            invoices = await get_invoices_by_client_id(client_obj['id'])
+        else:
+            invoices = await get_all_invoices()
+        if period:
+            invoices = [i for i in invoices if period in str(i.get('issued_at', ''))]
+        if not invoices:
+            return {"success": False, "message": f"No hay facturas para el cliente '{client_name}' en el periodo '{period}'."}
+        prompt = build_report_prompt(invoices, client_name, period, report_type, manager['name'], manager['email'])
+        from openai import OpenAI
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {"role": "system", "content": (
                     "Eres un asistente experto en análisis de facturación empresarial con experiencia en contabilidad, finanzas y redacción de informes comerciales. "
                     "Tu tarea principal es generar reportes claros, concisos y visualmente profesionales para managers de empresas, usando datos de facturación obtenidos de una base de datos conectada a un sistema MCP. "
                     "Siempre valida que el destinatario esté autorizado y adapta el informe al tipo solicitado (general, ejecutivo, morosidad, etc.)."
-                )
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
-    report_text = response.choices[0].message.content
-
-    # 4. Enviar el informe por email
-    await send_email_with_report(manager['email'], report_text, subject=f"Informe {report_type}", invoices=invoices)
-
-    # 4.5 Guardar el informe en la tabla reports
-    # Obtener client_id si hay cliente, si no, None
-    client_id = client_obj['id'] if client_name and 'client_obj' in locals() and client_obj else None
-    db_url = DATABASE_URL
-    try:
+                )},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        report_text = response.choices[0].message.content
+        await send_email_with_report(manager['email'], report_text, subject=f"Informe {report_type}", invoices=invoices)
+        client_id = client_obj['id'] if client_name and 'client_obj' in locals() and client_obj else None
+        db_url = DATABASE_URL
         conn = await asyncpg.connect(dsn=db_url)
-        await save_report(
+        save_result = await save_report(
             conn,
             client_id,
             client_name if client_name else None,
@@ -185,18 +165,18 @@ async def generate_report(
             report_text
         )
         await conn.close()
+        if not save_result.get("success", True):
+            return {"success": False, "error": save_result.get("error", "Error al guardar el informe en la base de datos.")}
+        return {"success": True, "message": f"Informe enviado a {manager['name']} <{manager['email']}>"}
     except Exception as e:
-        logger.error(f"Error guardando el informe en la base de datos: {e}")
-
-    # 5. Confirmación
-    return {"success": True, "message": f"Informe enviado a {manager['name']} <{manager['email']}>"}
+        logger.error(f"Error en generate_report: {e}")
+        return {"success": False, "error": str(e)}
 
 @mcp.tool(
     name="list_reports",
     description="Listar todos los reportes generados en la base de datos."
 )
 async def list_reports() -> dict:
-    """Listar todos los reportes generados en la base de datos."""
     try:
         db_url = DATABASE_URL
         conn = await asyncpg.connect(dsn=db_url)
