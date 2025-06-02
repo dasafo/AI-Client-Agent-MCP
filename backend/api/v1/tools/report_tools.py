@@ -6,7 +6,7 @@ import openai
 from typing import Optional
 import smtplib
 from email.message import EmailMessage
-from backend.services.report_service import save_report
+from backend.services.report_service import save_report, get_client_by_name, filter_invoices_by_period
 import asyncpg
 import matplotlib.pyplot as plt
 import io
@@ -67,10 +67,31 @@ def generate_invoice_status_chart(invoices):
     return buf.read()
 
 def clean_llm_html(html_text):
+    """
+    Sanitiza HTML generado por LLM eliminando etiquetas y atributos peligrosos.
+    - Elimina bloques de código markdown
+    - Elimina etiquetas peligrosas y su contenido
+    - Elimina atributos peligrosos (on*, style, formaction, srcdoc, etc)
+    - Elimina comentarios HTML
+    """
     # Elimina bloques de código markdown tipo ```html ... ```
     cleaned = re.sub(r'```html\s*([\s\S]*?)```', r'\1', html_text, flags=re.IGNORECASE)
-    # También elimina cualquier bloque ``` ... ```
+    # Elimina cualquier bloque ``` ... ```
     cleaned = re.sub(r'```[\s\S]*?```', '', cleaned)
+    # Elimina comentarios HTML
+    cleaned = re.sub(r'<!--.*?-->', '', cleaned, flags=re.DOTALL)
+    # Elimina etiquetas peligrosas y su contenido (script, iframe, object, embed, style, link, meta, base)
+    cleaned = re.sub(r'<\s*(script|iframe|object|embed|style|link|meta|base)[^>]*>[\s\S]*?<\s*/\s*\1\s*>', '', cleaned, flags=re.IGNORECASE)
+    # Elimina etiquetas peligrosas auto-cerradas
+    cleaned = re.sub(r'<\s*(script|iframe|object|embed|style|link|meta|base)[^>]*/>', '', cleaned, flags=re.IGNORECASE)
+    # Elimina atributos on* (onerror, onclick, etc), style, formaction, srcdoc
+    cleaned = re.sub(r'\s(on\w+|style|formaction|srcdoc)\s*=\s*"[^"]*"', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s(on\w+|style|formaction|srcdoc)\s*=\s*'[^']*'", '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\s(on\w+|style|formaction|srcdoc)\s*=\s*[^ >]+', '', cleaned, flags=re.IGNORECASE)
+    # Elimina javascript: en href/src
+    cleaned = re.sub(r'(href|src)\s*=\s*(["\'])\s*javascript:[^\2]*\2', r'\1="#"', cleaned, flags=re.IGNORECASE)
+    # Opcional: elimina cualquier etiqueta <meta> o <base> auto-cerrada
+    cleaned = re.sub(r'<\s*(meta|base)[^>]*/?>', '', cleaned, flags=re.IGNORECASE)
     return cleaned.strip()
 
 async def send_email_with_report(to_email, report_text, subject="Informe", invoices=None):
@@ -104,6 +125,60 @@ async def send_email_with_report(to_email, report_text, subject="Informe", invoi
         logger.error(f"Error enviando email: {e}")
         raise
 
+async def obtener_manager_autorizado(manager_name, manager_email):
+    if manager_name:
+        return await get_manager_by_name(manager_name)
+    elif manager_email:
+        return await get_manager_by_email(manager_email)
+    return None
+
+async def obtener_invoices_cliente_periodo(client_name, period):
+    if client_name:
+        client_obj = await get_client_by_name(client_name)
+        if not client_obj:
+            return None, None
+        invoices = await get_invoices_by_client_id(client_obj['id'])
+    else:
+        client_obj = None
+        invoices = await get_all_invoices()
+    if period:
+        invoices = filter_invoices_by_period(invoices, period)
+    return client_obj, invoices
+
+def generar_texto_informe_llm(invoices, client_name, period, report_type, manager):
+    prompt = build_report_prompt(invoices, client_name, period, report_type, manager['name'], manager['email'])
+    from openai import OpenAI
+    openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    response = openai_client.chat.completions.create(
+        model="gpt-4o-mini-2024-07-18",
+        messages=[
+            {"role": "system", "content": (
+                "Eres un asistente experto en análisis de facturación empresarial con experiencia en contabilidad, finanzas y redacción de informes comerciales. "
+                "Tu tarea principal es generar reportes claros, concisos y visualmente profesionales para managers de empresas, usando datos de facturación obtenidos de una base de datos conectada a un sistema MCP. "
+                "Siempre valida que el destinatario esté autorizado y adapta el informe al tipo solicitado (general, ejecutivo, morosidad, etc.)."
+            )},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content
+
+async def guardar_informe_db(client_obj, client_name, period, manager, report_type, report_text):
+    client_id = client_obj['id'] if client_obj else None
+    db_url = DATABASE_URL
+    conn = await asyncpg.connect(dsn=db_url)
+    save_result = await save_report(
+        conn,
+        client_id,
+        client_name if client_name else None,
+        period if period else None,
+        manager['email'],
+        manager['name'],
+        report_type,
+        report_text
+    )
+    await conn.close()
+    return save_result
+
 @mcp.tool(
     name="generate_report",
     description="Genera un informe comercial y profesional y lo envía al manager autorizado por email."
@@ -116,55 +191,17 @@ async def generate_report(
     report_type: str
 ):
     try:
-        manager = None
-        if manager_name:
-            manager = await get_manager_by_name(manager_name)
-        elif manager_email:
-            manager = await get_manager_by_email(manager_email)
+        manager = await obtener_manager_autorizado(manager_name, manager_email)
         if not manager:
             return {"success": False, "error": "Destinatario no autorizado para recibir informes."}
-        if client_name:
-            clients = await get_all_clients()
-            client_obj = next((c for c in clients if c['name'].lower() == client_name.lower()), None)
-            if not client_obj:
-                return {"success": False, "error": "Cliente no encontrado."}
-            invoices = await get_invoices_by_client_id(client_obj['id'])
-        else:
-            invoices = await get_all_invoices()
-        if period:
-            invoices = [i for i in invoices if period in str(i.get('issued_at', ''))]
+        client_obj, invoices = await obtener_invoices_cliente_periodo(client_name, period)
+        if client_name and not client_obj:
+            return {"success": False, "error": "Cliente no encontrado."}
         if not invoices:
             return {"success": False, "message": f"No hay facturas para el cliente '{client_name}' en el periodo '{period}'."}
-        prompt = build_report_prompt(invoices, client_name, period, report_type, manager['name'], manager['email'])
-        from openai import OpenAI
-        openai_client = OpenAI(api_key=OPENAI_API_KEY)
-        response = openai_client.chat.completions.create(
-            model="gpt-4o-mini-2024-07-18",
-            messages=[
-                {"role": "system", "content": (
-                    "Eres un asistente experto en análisis de facturación empresarial con experiencia en contabilidad, finanzas y redacción de informes comerciales. "
-                    "Tu tarea principal es generar reportes claros, concisos y visualmente profesionales para managers de empresas, usando datos de facturación obtenidos de una base de datos conectada a un sistema MCP. "
-                    "Siempre valida que el destinatario esté autorizado y adapta el informe al tipo solicitado (general, ejecutivo, morosidad, etc.)."
-                )},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        report_text = response.choices[0].message.content
+        report_text = generar_texto_informe_llm(invoices, client_name, period, report_type, manager)
         await send_email_with_report(manager['email'], report_text, subject=f"Informe {report_type}", invoices=invoices)
-        client_id = client_obj['id'] if client_name and 'client_obj' in locals() and client_obj else None
-        db_url = DATABASE_URL
-        conn = await asyncpg.connect(dsn=db_url)
-        save_result = await save_report(
-            conn,
-            client_id,
-            client_name if client_name else None,
-            period if period else None,
-            manager['email'],
-            manager['name'],
-            report_type,
-            report_text
-        )
-        await conn.close()
+        save_result = await guardar_informe_db(client_obj, client_name, period, manager, report_type, report_text)
         if not save_result.get("success", True):
             return {"success": False, "error": save_result.get("error", "Error al guardar el informe en la base de datos.")}
         return {"success": True, "message": f"Informe enviado a {manager['name']} <{manager['email']}>"}

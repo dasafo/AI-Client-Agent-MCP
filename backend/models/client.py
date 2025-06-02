@@ -40,10 +40,13 @@ class ClientOut(ClientBase):
     """
     id: int  # Unique client ID
     name: str  # Client name (always present in output)
-    created_at: str  # Client creation date (in ISO format)
+    created_at: datetime  # Client creation date (as datetime)
 
     class Config:
         from_attributes = True  # pydantic v2 - allows creating the model from ORM attributes
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None
+        }
 
 
 class ClientDeleteResponse(BaseModel):

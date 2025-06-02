@@ -12,13 +12,12 @@ logger = get_logger(__name__)
 @with_db_connection
 async def get_all_clients(conn=None) -> List[Dict[str, Any]]:
     """
-    Get all clients ordered by ID.
-    
+    Obtiene todos los clientes ordenados por ID.
+
     Args:
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        List of dictionaries containing client data.
+        Lista de diccionarios con los datos de los clientes.
     """
     try:
         rows = await conn.fetch(
@@ -26,20 +25,19 @@ async def get_all_clients(conn=None) -> List[Dict[str, Any]]:
         )
         return [dict(row) for row in rows]
     except Exception as e:
-        logger.error(f"Error in get_all_clients: {e}")
+        logger.error(f"Error en get_all_clients: {e}")
         return []
 
 @with_db_connection
 async def get_client_by_id(client_id: int, conn=None) -> Optional[Dict[str, Any]]:
     """
-    Get a specific client by ID.
-    
+    Obtiene un cliente específico por su ID.
+
     Args:
-        client_id: ID of the client to find.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        client_id: ID del cliente a buscar.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Dictionary with client data or None if not found.
+        Diccionario con los datos del cliente o None si no se encuentra.
     """
     try:
         row = await conn.fetchrow(
@@ -48,22 +46,21 @@ async def get_client_by_id(client_id: int, conn=None) -> Optional[Dict[str, Any]
         )
         return dict(row) if row else None
     except Exception as e:
-        logger.error(f"Error in get_client_by_id: {e}")
+        logger.error(f"Error en get_client_by_id: {e}")
         return None
 
 @with_db_connection
 async def create_client(name: str, city: str = "", email: str = "", conn=None) -> Dict[str, Any]:
     """
-    Create a new client in the database.
-    
+    Crea un nuevo cliente en la base de datos.
+
     Args:
-        name: Client name (required).
-        city: Client city (optional).
-        email: Client email (optional).
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        name: Nombre del cliente (obligatorio).
+        city: Ciudad del cliente (opcional).
+        email: Email del cliente (opcional).
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Dictionary with the created client data.
+        Diccionario con los datos del cliente creado.
     """
     try:
         query = """
@@ -74,30 +71,29 @@ async def create_client(name: str, city: str = "", email: str = "", conn=None) -
         row = await conn.fetchrow(query, name, city, email)
         return dict(row)
     except Exception as e:
-        logger.error(f"Error in create_client: {e}")
+        logger.error(f"Error en create_client: {e}")
         return {"success": False, "error": str(e)}
 
 @with_db_connection
 async def update_client(client_id: int, client_data: 'ClientUpdate', conn=None) -> Optional[Dict[str, Any]]:
     """
-    Update an existing client's data using a dynamic query and exclude_unset, similar to update_invoice.
-    
+    Actualiza los datos de un cliente existente usando una consulta dinámica y exclude_unset.
+
     Args:
-        client_id: ID of the client to update.
-        client_data: ClientUpdate model with fields to update.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        client_id: ID del cliente a actualizar.
+        client_data: Modelo ClientUpdate con los campos a actualizar.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Dictionary with updated client data or None if not found.
+        Diccionario con los datos del cliente actualizado o None si no se encuentra.
     """
     try:
         current_client = await get_client_by_id(client_id, conn=conn)
         if not current_client:
-            logger.info(f"Client with ID {client_id} not found for update")
+            logger.info(f"Cliente con ID {client_id} no encontrado para actualizar")
             return None
         update_fields = client_data.model_dump(exclude_unset=True)
         if not update_fields:
-            logger.info(f"No fields to update for client ID {client_id}")
+            logger.info(f"No hay campos para actualizar en el cliente ID {client_id}")
             return current_client
         set_clauses = []
         values = []
@@ -116,47 +112,45 @@ async def update_client(client_id: int, client_data: 'ClientUpdate', conn=None) 
         row = await conn.fetchrow(query, *values)
         return dict(row) if row else None
     except Exception as e:
-        logger.error(f"Error in update_client: {e}")
+        logger.error(f"Error en update_client: {e}")
         return None
 
 @with_db_connection
 async def delete_client(client_id: int, conn=None) -> bool:
     """
-    Delete a client from the database.
-    
+    Elimina un cliente de la base de datos.
+
     Args:
-        client_id: ID of the client to delete.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        client_id: ID del cliente a eliminar.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Boolean indicating if deletion was successful.
+        Booleano que indica si la eliminación fue exitosa.
     """
     try:
         client = await get_client_by_id(client_id, conn=conn)
         if not client:
-            logger.info(f"Client with ID {client_id} not found for deletion")
+            logger.info(f"Cliente con ID {client_id} no encontrado para eliminar")
             return False
         query = "DELETE FROM clients WHERE id = $1"
         result = await conn.execute(query, client_id)
         return "DELETE" in result
     except Exception as e:
-        logger.error(f"Error in delete_client: {e}")
+        logger.error(f"Error en delete_client: {e}")
         return False
 
 # Example of a function that uses a transaction
 @db_transaction
 async def transfer_client_data(source_client_id: int, target_client_id: int, conn=None) -> bool:
     """
-    Transfer data from one client to another within a transaction.
-    Both source and target client must exist.
-    
+    Transfiere datos de un cliente a otro dentro de una transacción.
+    Ambos clientes deben existir.
+
     Args:
-        source_client_id: ID of the source client.
-        target_client_id: ID of the target client.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        source_client_id: ID del cliente origen.
+        target_client_id: ID del cliente destino.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Boolean indicating if the transfer was successful.
+        Booleano que indica si la transferencia fue exitosa.
     """
     try:
         source_client = await conn.fetchrow(
@@ -164,14 +158,14 @@ async def transfer_client_data(source_client_id: int, target_client_id: int, con
             source_client_id
         )
         if not source_client:
-            logger.warning(f"Source client with ID {source_client_id} not found")
+            logger.warning(f"Cliente origen con ID {source_client_id} no encontrado")
             return False
         target_client = await conn.fetchrow(
             "SELECT id FROM clients WHERE id = $1",
             target_client_id
         )
         if not target_client:
-            logger.warning(f"Target client with ID {target_client_id} not found")
+            logger.warning(f"Cliente destino con ID {target_client_id} no encontrado")
             return False
         await conn.execute(
             "UPDATE invoices SET client_id = $1 WHERE client_id = $2",
@@ -181,8 +175,8 @@ async def transfer_client_data(source_client_id: int, target_client_id: int, con
             "DELETE FROM clients WHERE id = $1",
             source_client_id
         )
-        logger.info(f"Successfully transferred data from client {source_client_id} to {target_client_id}")
+        logger.info(f"Transferencia de datos de cliente {source_client_id} a {target_client_id} realizada con éxito")
         return True
     except Exception as e:
-        logger.error(f"Error in transfer_client_data: {e}")
+        logger.error(f"Error en transfer_client_data: {e}")
         return False

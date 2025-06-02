@@ -6,6 +6,7 @@ from decimal import Decimal
 from datetime import date
 import asyncpg
 from backend.core.logging import get_logger
+from backend.services.client_service import get_client_by_id
 
 # Invoice management services
 # These functions implement business logic and database access for invoices
@@ -16,13 +17,12 @@ logger = get_logger(__name__)
 @with_db_connection
 async def get_all_invoices(conn: Optional[asyncpg.Connection] = None) -> List[Dict[str, Any]]:
     """
-    Get all invoices ordered by ID.
-    
+    Obtiene todas las facturas ordenadas por ID.
+
     Args:
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        List of dictionaries containing invoice data.
+        Lista de diccionarios con los datos de las facturas.
     """
     try:
         query = """
@@ -33,23 +33,22 @@ async def get_all_invoices(conn: Optional[asyncpg.Connection] = None) -> List[Di
         rows = await conn.fetch(query)
         return [dict(row) for row in rows]
     except asyncpg.PostgresError as e:
-        logger.error(f"Database error in get_all_invoices: {e}")
+        logger.error(f"Error de base de datos en get_all_invoices: {e}")
         return []
     except Exception as e:
-        logger.error(f"Unexpected error in get_all_invoices: {e}")
+        logger.error(f"Error inesperado en get_all_invoices: {e}")
         return []
 
 @with_db_connection
 async def get_invoice_by_id(invoice_id: int, conn: Optional[asyncpg.Connection] = None) -> Optional[Dict[str, Any]]:
     """
-    Get a specific invoice by ID.
-    
+    Obtiene una factura específica por su ID.
+
     Args:
-        invoice_id: ID of the invoice to find.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        invoice_id: ID de la factura a buscar.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Dictionary with invoice data or None if not found.
+        Diccionario con los datos de la factura o None si no se encuentra.
     """
     try:
         query = """
@@ -60,23 +59,22 @@ async def get_invoice_by_id(invoice_id: int, conn: Optional[asyncpg.Connection] 
         row = await conn.fetchrow(query, invoice_id)
         return dict(row) if row else None
     except asyncpg.PostgresError as e:
-        logger.error(f"Database error in get_invoice_by_id: {e}")
+        logger.error(f"Error de base de datos en get_invoice_by_id: {e}")
         return None
     except Exception as e:
-        logger.error(f"Unexpected error in get_invoice_by_id: {e}")
+        logger.error(f"Error inesperado en get_invoice_by_id: {e}")
         return None
 
 @with_db_connection
 async def get_invoices_by_client_id(client_id: int, conn: Optional[asyncpg.Connection] = None) -> List[Dict[str, Any]]:
     """
-    Get all invoices for a specific client.
-    
+    Obtiene todas las facturas de un cliente específico.
+
     Args:
-        client_id: ID of the client whose invoices to retrieve.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        client_id: ID del cliente cuyas facturas se desean obtener.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        List of dictionaries containing invoice data for the client.
+        Lista de diccionarios con los datos de las facturas del cliente.
     """
     try:
         query = """
@@ -88,26 +86,22 @@ async def get_invoices_by_client_id(client_id: int, conn: Optional[asyncpg.Conne
         rows = await conn.fetch(query, client_id)
         return [dict(row) for row in rows]
     except asyncpg.PostgresError as e:
-        logger.error(f"Database error in get_invoices_by_client_id: {e}")
+        logger.error(f"Error de base de datos en get_invoices_by_client_id: {e}")
         return []
     except Exception as e:
-        logger.error(f"Unexpected error in get_invoices_by_client_id: {e}")
+        logger.error(f"Error inesperado en get_invoices_by_client_id: {e}")
         return []
 
 @with_db_connection
 async def create_invoice(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Connection] = None) -> Dict[str, Any]:
     """
-    Create a new invoice in the database.
-    
+    Crea una nueva factura en la base de datos.
+
     Args:
-        invoice_data: InvoiceCreate object with invoice data.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        invoice_data: Modelo InvoiceCreate con los datos de la factura.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Dictionary with the created invoice data.
-        
-    Raises:
-        Exception: If invoice creation fails.
+        Diccionario con los datos de la factura creada.
     """
     try:
         query = """
@@ -126,102 +120,103 @@ async def create_invoice(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Con
             status
         )
         if not row:
-            logger.error("Failed to create invoice")
-            return {"success": False, "error": "Failed to create invoice"}
+            logger.error("No se pudo crear la factura")
+            return {"success": False, "error": "No se pudo crear la factura"}
         return dict(row)
     except asyncpg.PostgresError as e:
-        logger.error(f"Database error in create_invoice: {e}")
+        logger.error(f"Error de base de datos en create_invoice: {e}")
         return {"success": False, "error": str(e)}
     except Exception as e:
-        logger.error(f"Unexpected error in create_invoice: {e}")
+        logger.error(f"Error inesperado en create_invoice: {e}")
         return {"success": False, "error": str(e)}
 
 @with_db_connection
 async def update_invoice(invoice_id: int, invoice_data: InvoiceUpdate, conn: Optional[asyncpg.Connection] = None) -> Optional[Dict[str, Any]]:
     """
-    Update an existing invoice's data.
-    
+    Actualiza los datos de una factura existente.
+
     Args:
-        invoice_id: ID of the invoice to update.
-        invoice_data: InvoiceUpdate object with fields to update.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        invoice_id: ID de la factura a actualizar.
+        invoice_data: Modelo InvoiceUpdate con los campos a actualizar.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Dictionary with updated invoice data or None if not found.
+        Diccionario con los datos de la factura actualizada o None si no se encuentra.
+        Si el client_id proporcionado no existe, devuelve un error claro.
     """
     try:
         current_invoice = await get_invoice_by_id(invoice_id, conn=conn)
         if not current_invoice:
-            logger.info(f"Invoice with ID {invoice_id} not found for update")
+            logger.info(f"Factura con ID {invoice_id} no encontrada para actualizar")
             return None
         update_fields = invoice_data.model_dump(exclude_unset=True)
         if not update_fields:
-            logger.info(f"No fields to update for invoice ID {invoice_id}")
+            logger.info(f"No hay campos para actualizar en la factura ID {invoice_id}")
             return current_invoice
+        # Validar que el client_id exista si se proporciona
+        if 'client_id' in update_fields:
+            client_exists = await get_client_by_id(update_fields['client_id'], conn=conn)
+            if not client_exists:
+                logger.error(f"El client_id {update_fields['client_id']} no existe. No se puede actualizar la factura.")
+                return {"success": False, "error": f"El client_id {update_fields['client_id']} no existe."}
         set_clauses = []
         values = []
-        i = 1
-        for key, value in update_fields.items():
-            set_clauses.append(f"{key} = ${i}")
+        for idx, (key, value) in enumerate(update_fields.items(), start=1):
+            set_clauses.append(f"{key} = ${idx}")
             values.append(value)
-            i += 1
         values.append(invoice_id)
+        set_clause_str = ', '.join(set_clauses)
+        id_placeholder = f"${len(values)}"
         query = f"""
             UPDATE invoices 
-            SET {', '.join(set_clauses)} 
-            WHERE id = ${i}
+            SET {set_clause_str} 
+            WHERE id = {id_placeholder}
             RETURNING id, client_id, amount, issued_at, due_date, status
         """
         row = await conn.fetchrow(query, *values)
         return dict(row) if row else None
     except asyncpg.PostgresError as e:
-        logger.error(f"Database error in update_invoice: {e}")
+        logger.error(f"Error de base de datos en update_invoice: {e}")
         return None
     except Exception as e:
-        logger.error(f"Unexpected error in update_invoice: {e}")
+        logger.error(f"Error inesperado en update_invoice: {e}")
         return None
 
 @with_db_connection
 async def delete_invoice(invoice_id: int, conn: Optional[asyncpg.Connection] = None) -> bool:
     """
-    Delete an invoice from the database.
-    
+    Elimina una factura de la base de datos.
+
     Args:
-        invoice_id: ID of the invoice to delete.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        invoice_id: ID de la factura a eliminar.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Boolean indicating if deletion was successful.
+        Booleano que indica si la eliminación fue exitosa.
     """
     try:
         invoice = await get_invoice_by_id(invoice_id, conn=conn)
         if not invoice:
-            logger.info(f"Invoice with ID {invoice_id} not found for deletion")
+            logger.info(f"Factura con ID {invoice_id} no encontrada para eliminar")
             return False
         query = "DELETE FROM invoices WHERE id = $1"
         result = await conn.execute(query, invoice_id)
         return "DELETE" in result
     except asyncpg.PostgresError as e:
-        logger.error(f"Database error in delete_invoice: {e}")
+        logger.error(f"Error de base de datos en delete_invoice: {e}")
         return False
     except Exception as e:
-        logger.error(f"Unexpected error in delete_invoice: {e}")
+        logger.error(f"Error inesperado en delete_invoice: {e}")
         return False
 
 @db_transaction
 async def create_invoice_with_verification(invoice_data: InvoiceCreate, conn: Optional[asyncpg.Connection] = None) -> Dict[str, Any]:
     """
-    Create a new invoice with additional client verification within a transaction.
-    
+    Crea una nueva factura verificando previamente que el cliente exista, dentro de una transacción.
+
     Args:
-        invoice_data: InvoiceCreate object with invoice data.
-        conn: Optional database connection. If not provided, a new one is created.
-        
+        invoice_data: Modelo InvoiceCreate con los datos de la factura.
+        conn: Conexión opcional a la base de datos. Si no se proporciona, se crea una nueva.
     Returns:
-        Dictionary with the created invoice data.
-        
-    Raises:
-        Exception: If client doesn't exist or invoice creation fails.
+        Diccionario con los datos de la factura creada o un error si el cliente no existe.
     """
     try:
         client = await conn.fetchrow(
@@ -229,14 +224,14 @@ async def create_invoice_with_verification(invoice_data: InvoiceCreate, conn: Op
             invoice_data.client_id
         )
         if not client:
-            error_msg = f"Cannot create invoice: Client with ID {invoice_data.client_id} does not exist"
+            error_msg = f"No se puede crear la factura: el cliente con ID {invoice_data.client_id} no existe"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
         # Reutiliza la lógica de inserción
         return await create_invoice(invoice_data, conn=conn)
     except asyncpg.PostgresError as e:
-        logger.error(f"Database error in create_invoice_with_verification: {e}")
+        logger.error(f"Error de base de datos en create_invoice_with_verification: {e}")
         return {"success": False, "error": str(e)}
     except Exception as e:
-        logger.error(f"Unexpected error in create_invoice_with_verification: {e}")
+        logger.error(f"Error inesperado en create_invoice_with_verification: {e}")
         return {"success": False, "error": str(e)} 

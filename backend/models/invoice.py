@@ -54,6 +54,10 @@ class InvoiceOut(InvoiceBase):
 
     class Config:
         from_attributes = True  # pydantic v2 - allows creating the model from ORM attributes
+        json_encoders = {
+            date: lambda v: v.isoformat() if v else None,
+            datetime: lambda v: v.isoformat() if v else None
+        }
 
 class InvoiceDeleteResponse(BaseModel):
     """
