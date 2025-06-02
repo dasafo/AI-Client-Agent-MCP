@@ -7,6 +7,16 @@ import os
 from typing import Optional
 import smtplib
 from email.message import EmailMessage
+from backend.services.report_service import save_report
+import asyncpg
+import matplotlib.pyplot as plt
+import io
+import base64
+import re
+import logging
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 def build_report_prompt(invoices, client_name, period, report_type, manager_name=None, manager_email=None):
     if period:
@@ -21,6 +31,8 @@ def build_report_prompt(invoices, client_name, period, report_type, manager_name
 
     resumen = f"""
 Eres un analista financiero profesional. Elabora un informe {report_type} de facturación {cliente_texto} {periodo_texto}.
+
+El informe debe estar en formato HTML profesional, con tablas y secciones claras. No incluyas sugerencias para desarrolladores ni comentarios meta; el informe debe estar listo para ser enviado directamente al manager.
 
 Estructura el informe en las siguientes secciones:
 1. Resumen ejecutivo (máximo 5 líneas)
@@ -37,12 +49,46 @@ Sé claro, profesional y conciso. El informe debe estar listo para ser enviado a
         resumen += f"\n\nNota: Este informe será enviado a {manager_name} <{manager_email}>."
     return resumen
 
-async def send_email_with_report(to_email, report_text, subject="Informe"):
+def generate_invoice_status_chart(invoices):
+    # Contar facturas por estado
+    estados = ['completed', 'pending', 'canceled']
+    counts = [len([i for i in invoices if i['status'] == estado]) for estado in estados]
+    # Crear gráfico
+    fig, ax = plt.subplots()
+    ax.bar(estados, counts, color=['#4CAF50', '#FFC107', '#F44336'])
+    ax.set_ylabel('Número de facturas')
+    ax.set_title('Facturas por estado')
+    # Guardar en buffer
+    buf = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+def clean_llm_html(html_text):
+    # Elimina bloques de código markdown tipo ```html ... ```
+    cleaned = re.sub(r'```html\s*([\s\S]*?)```', r'\1', html_text, flags=re.IGNORECASE)
+    # También elimina cualquier bloque ``` ... ```
+    cleaned = re.sub(r'```[\s\S]*?```', '', cleaned)
+    return cleaned.strip()
+
+async def send_email_with_report(to_email, report_text, subject="Informe", invoices=None):
     msg = EmailMessage()
     msg['Subject'] = subject
     msg['From'] = os.getenv("SMTP_USER")
     msg['To'] = to_email
-    msg.set_content(report_text)
+    msg.set_content("Este correo contiene un informe en HTML. Si no lo ves correctamente, usa un cliente compatible.")
+
+    # Adjuntar gráfico como base64 si hay facturas
+    html_report = clean_llm_html(report_text)
+    if invoices:
+        img_bytes = generate_invoice_status_chart(invoices)
+        img_b64 = base64.b64encode(img_bytes).decode('utf-8')
+        img_tag = f'<img src="data:image/png;base64,{img_b64}" alt="Gráfico de facturas por estado" style="max-width:400px;"><br>'
+        if '<img' not in html_report:
+            html_report = img_tag + html_report
+    msg.add_alternative(html_report, subtype='html')
 
     smtp_host = os.getenv("SMTP_HOST")
     smtp_port = int(os.getenv("SMTP_PORT", 465))
@@ -55,7 +101,7 @@ async def send_email_with_report(to_email, report_text, subject="Informe"):
             smtp.send_message(msg)
         return True
     except Exception as e:
-        print(f"Error enviando email: {e}")
+        logger.error(f"Error enviando email: {e}")
         raise
 
 @mcp.tool(
@@ -81,10 +127,10 @@ async def generate_report(
     # 2. Recopilar datos
     if client_name:
         clients = await get_all_clients()
-        client = next((c for c in clients if c['name'].lower() == client_name.lower()), None)
-        if not client:
+        client_obj = next((c for c in clients if c['name'].lower() == client_name.lower()), None)
+        if not client_obj:
             raise ValueError("Cliente no encontrado.")
-        invoices = await get_invoices_by_client_id(client['id'])
+        invoices = await get_invoices_by_client_id(client_obj['id'])
     else:
         invoices = await get_all_invoices()
 
@@ -100,8 +146,8 @@ async def generate_report(
     prompt = build_report_prompt(invoices, client_name, period, report_type, manager['name'], manager['email'])
     from openai import OpenAI
     api_key = os.getenv("OPENAI_API_KEY")
-    client = OpenAI(api_key=api_key)
-    response = client.chat.completions.create(
+    openai_client = OpenAI(api_key=api_key)
+    response = openai_client.chat.completions.create(
         model="gpt-4o-mini-2024-07-18",
         messages=[
             {
@@ -121,7 +167,27 @@ async def generate_report(
     report_text = response.choices[0].message.content
 
     # 4. Enviar el informe por email
-    await send_email_with_report(manager['email'], report_text, subject=f"Informe {report_type}")
+    await send_email_with_report(manager['email'], report_text, subject=f"Informe {report_type}", invoices=invoices)
+
+    # 4.5 Guardar el informe en la tabla reports
+    # Obtener client_id si hay cliente, si no, None
+    client_id = client_obj['id'] if client_name and 'client_obj' in locals() and client_obj else None
+    db_url = os.getenv("DATABASE_URL")
+    try:
+        conn = await asyncpg.connect(dsn=db_url)
+        await save_report(
+            conn,
+            client_id,
+            client_name if client_name else None,
+            period if period else None,
+            manager['email'],
+            manager['name'],
+            report_type,
+            report_text
+        )
+        await conn.close()
+    except Exception as e:
+        logger.error(f"Error guardando el informe en la base de datos: {e}")
 
     # 5. Confirmación
     return {"success": True, "message": f"Informe enviado a {manager['name']} <{manager['email']}>"}
