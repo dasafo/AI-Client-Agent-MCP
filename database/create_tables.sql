@@ -1,3 +1,8 @@
+-- ⚠️ ADVERTENCIA: Los datos de ejemplo de este script están pensados únicamente para entornos de desarrollo. No deben utilizarse en producción.
+-- Para producción, elimina o comenta los bloques de inserción de datos ficticios.
+--
+-- Mejoras recomendadas: Para proyectos en crecimiento, se recomienda usar una herramienta de migraciones (por ejemplo, Alembic) para gestionar cambios en el esquema de la base de datos de forma segura y controlada.
+
 -- Creación de las tablas (si no existen)
 CREATE TABLE IF NOT EXISTS clients (
     id SERIAL PRIMARY KEY,
@@ -27,6 +32,10 @@ CREATE TABLE IF NOT EXISTS reports (
     report_text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Para invoices
+-- Índice para búsquedas rápidas de facturas por cliente (recomendado para escalabilidad)
+CREATE INDEX IF NOT EXISTS idx_invoices_client_id ON invoices(client_id);
 
 
 -- Inserción de Clientes y sus Facturas Intercaladas
@@ -386,6 +395,8 @@ INSERT INTO invoices (client_id, amount, issued_at, due_date, status) VALUES (32
 INSERT INTO invoices (client_id, amount, issued_at, due_date, status) VALUES (32, 215.50, '2023-05-10', '2023-06-09', 'paid');
 INSERT INTO invoices (client_id, amount, issued_at, due_date, status) VALUES (32, 99.00, '2022-08-22', '2022-09-21', 'canceled');
 INSERT INTO invoices (client_id, amount, issued_at, due_date, status) VALUES (32, 45.25, '2023-11-01', '2023-11-30', 'pending');
+INSERT INTO invoices (client_id, amount, issued_at, due_date, status) VALUES (32, 45.50, '2023-11-01', '2023-11-30', 'paid');
+INSERT INTO invoices (client_id, amount, issued_at, due_date, status) VALUES (32, 200.00, '2023-06-05', '2023-07-05', 'pending');
 
 -- Cliente 33 (ID asumido: 33)
 INSERT INTO clients (name, city, email) VALUES ('Cándida Chavarría', 'Vieja Países Bajos', 'cándida.chavarría@example.com');

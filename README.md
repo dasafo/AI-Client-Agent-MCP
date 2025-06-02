@@ -319,3 +319,26 @@ This project is licensed under the [MIT License](LICENSE). See the LICENSE file 
 <p align="center">
   <sub>Created with ❤️ by David Salas - dasafodata</sub>
 </p>
+
+> ⚠️ **Advertencia:** Los datos de ejemplo incluidos en los scripts de inicialización (por ejemplo, `create_tables.sql` y `managers.sql`) están pensados únicamente para entornos de desarrollo. No deben utilizarse en entornos de producción.
+>
+> **Migraciones de base de datos:** Actualmente, los cambios en el esquema requieren modificar los archivos SQL manualmente y recrear la base de datos. Para proyectos en crecimiento, se recomienda integrar una herramienta de migraciones como Alembic para facilitar la evolución del esquema de forma segura y controlada.
+>
+> **Fuente de verdad de la tabla managers:** La definición de la tabla `managers` debe mantenerse únicamente en el archivo `database/managers.sql`. Evita duplicar la lógica de creación de esta tabla en scripts Python para prevenir inconsistencias.
+
+## 🚧 Limitations & Roadmap
+
+Some features mentioned in the blog or documentation (such as "configurable state transitions" for invoices or "detailed audit logs" for invoice modifications) are not yet implemented in the current codebase. For example:
+- There is no logic enforcing allowed status transitions (e.g., only allowing 'pending' → 'paid').
+- There is no separate audit log for invoice changes; only the current status is stored.
+
+These are ideas for future work and not present in the current implementation. The documentation and blog may reference them as potential improvements or portfolio vision, but they are not available yet. This is clarified to avoid false expectations for technical readers.
+
+## 🌐 Language Consistency
+
+This repository currently mixes English and Spanish in documentation and code comments. For global consistency, it is recommended to unify all documentation and code comments in English. Alternatively, a bilingual README can be provided.
+
+## 🔗 Technology References
+
+- **FastMCP**: This project uses [FastMCP](https://github.com/dasafo/fastmcp) version 2.5.1 (see `requirements.txt`). FastMCP is a framework for exposing business logic as tools for AI agents and automation.
+- **OpenAI Model**: The report generation uses the GPT-4 (or GPT-4o) model via the OpenAI API. You can configure the model version in the backend as needed.
