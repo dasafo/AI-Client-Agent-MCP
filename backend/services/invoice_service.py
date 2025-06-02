@@ -157,7 +157,7 @@ async def update_invoice(invoice_id: int, invoice_data: InvoiceUpdate, conn: Opt
     query = f"""
         UPDATE invoices 
         SET {', '.join(set_clauses)} 
-        WHERE id = ${{i}}
+        WHERE id = ${i}
         RETURNING id, client_id, amount, issued_at, due_date, status
     """
     

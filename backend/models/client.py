@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from pydantic import EmailStr
 from datetime import datetime
 
 # Pydantic models for client management
@@ -12,7 +13,7 @@ class ClientBase(BaseModel):
     """
     name: Optional[str] = None  # Client name
     city: Optional[str] = None  # Client city
-    email: Optional[str] = None  # Client email
+    email: Optional[EmailStr] = None  # Client email (validated)
 
 
 class ClientCreate(ClientBase):

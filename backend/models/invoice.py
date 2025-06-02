@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -15,7 +15,7 @@ class InvoiceBase(BaseModel):
     amount: Optional[Decimal] = Field(None, max_digits=10, decimal_places=2)  # Invoice amount with 2 decimal places
     issued_at: Optional[date] = None  # Date when the invoice was issued
     due_date: Optional[date] = None  # Due date for payment
-    status: Optional[str] = None  # Invoice status (pending, completed, canceled)
+    status: Optional[Literal['pending', 'paid', 'canceled']] = None  # Invoice status (restricted)
 
 class InvoiceCreate(InvoiceBase):
     """
@@ -38,7 +38,7 @@ class InvoiceUpdate(InvoiceBase):
     amount: Optional[Decimal] = Field(None, max_digits=10, decimal_places=2)
     issued_at: Optional[date] = None
     due_date: Optional[date] = None
-    status: Optional[str] = None
+    status: Optional[Literal['pending', 'paid', 'canceled']] = None
 
 class InvoiceOut(InvoiceBase):
     """
@@ -50,7 +50,7 @@ class InvoiceOut(InvoiceBase):
     amount: Decimal = Field(..., max_digits=10, decimal_places=2)  # Ensures amount is always present
     issued_at: date  # Ensures issued_at is always present (has a default value in the DB)
     due_date: Optional[date] = None
-    status: str  # Ensures status is always present (has a default value in the DB)
+    status: Literal['pending', 'paid', 'canceled']  # Ensures status is always present and valid
 
     class Config:
         from_attributes = True  # pydantic v2 - allows creating the model from ORM attributes

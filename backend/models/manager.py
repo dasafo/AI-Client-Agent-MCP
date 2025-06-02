@@ -11,6 +11,10 @@ class ManagerCreate(ManagerBase):
     pass
 
 class ManagerOut(ManagerBase):
+    """
+    Model for manager data output.
+    Includes all fields needed to represent a complete manager.
+    """
     id: int
     created_at: datetime
 

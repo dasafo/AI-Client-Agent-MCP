@@ -14,6 +14,7 @@ import base64
 import re
 from backend.core.config import SMTP_USER, SMTP_HOST, SMTP_PORT, SMTP_PASS, OPENAI_API_KEY, DATABASE_URL
 from backend.core.logging import get_logger
+from backend.models.report import ReportOut
 
 logger = get_logger(__name__)
 
@@ -189,3 +190,20 @@ async def generate_report(
 
     # 5. Confirmación
     return {"success": True, "message": f"Informe enviado a {manager['name']} <{manager['email']}>"}
+
+@mcp.tool(
+    name="list_reports",
+    description="Listar todos los reportes generados en la base de datos."
+)
+async def list_reports() -> dict:
+    """Listar todos los reportes generados en la base de datos."""
+    try:
+        db_url = DATABASE_URL
+        conn = await asyncpg.connect(dsn=db_url)
+        rows = await conn.fetch("SELECT * FROM reports ORDER BY created_at DESC")
+        await conn.close()
+        reports = [ReportOut(**dict(row)) for row in rows]
+        return {"success": True, "reports": [r.model_dump() for r in reports]}
+    except Exception as e:
+        logger.error(f"Error al listar reportes: {e}")
+        return {"success": False, "error": str(e)}
