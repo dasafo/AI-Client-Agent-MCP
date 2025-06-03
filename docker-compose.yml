@@ -1,50 +1,50 @@
 # docker-compose.yml
-# Archivo de configuración para Docker Compose
-# Define los servicios, redes y volúmenes necesarios para ejecutar la aplicación
+# Docker Compose configuration file
+# Defines the services, networks, and volumes needed to run the application
 
 services:
-  # Servicio de la aplicación principal
+  # Main application service
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: ai_client_agent_app
     ports:
-      - "${SERVER_PORT:-8000}:${SERVER_PORT:-8000}" # Usa SERVER_PORT de .env, o 8000 como fallback
+      - "${SERVER_PORT:-8000}:${SERVER_PORT:-8000}" # Uses SERVER_PORT from .env, or 8000 as fallback
     volumes:
-      - ./backend:/app/backend # Montaje para desarrollo en vivo
-      - ./app_logs:/app/logs   # Mapea un directorio local para logs de la app
+      - ./backend:/app/backend # Live development mount
+      - ./app_logs:/app/logs   # Maps a local directory for app logs
     env_file:
-      - .env # Carga todas las variables de .env
+      - .env # Loads all variables from .env
     environment:
-      # DATABASE_URL para referencia o si alguna parte de la app lo parsea directamente.
-      # La conexión principal se hará usando DB_HOST, DB_PORT, etc. que son leídos por get_db_connection_params.
+      # DATABASE_URL for reference or if any part of the app parses it directly.
+      # The main connection will use DB_HOST, DB_PORT, etc. which are read by get_db_connection_params.
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}
-      DB_HOST: db # Sobrescribe DB_HOST para que apunte al servicio 'db' de Docker
-      SERVER_HOST: 0.0.0.0 # Asegura que mcp.run() en server.py escuche en todas las interfaces dentro del contenedor
-      # DB_PORT, DB_USER, DB_PASSWORD, DB_NAME se toman de .env y son correctos para la conexión interna.
-      PYTHONUNBUFFERED: 1 # Deshabilita el buffering de salida de Python
-      # SERVER_HOST y SERVER_PORT para la app se controlan por el CMD en el Dockerfile (0.0.0.0:8000)
+      DB_HOST: db # Overrides DB_HOST to point to the 'db' service in Docker
+      SERVER_HOST: 0.0.0.0 # Ensures mcp.run() in server.py listens on all interfaces inside the container
+      # DB_PORT, DB_USER, DB_PASSWORD, DB_NAME are taken from .env and are correct for internal connection.
+      PYTHONUNBUFFERED: 1 # Disables Python output buffering
+      # SERVER_HOST and SERVER_PORT for the app are controlled by the CMD in the Dockerfile (0.0.0.0:8000)
     depends_on:
       db:
-        condition: service_healthy # Espera a que el servicio de base de datos esté listo
+        condition: service_healthy # Waits for the database service to be ready
     networks:
       - app_network
 
-  # Servicio de base de datos PostgreSQL
+  # PostgreSQL database service
   db:
     image: postgres:15-alpine
     container_name: ai_client_agent_db
     ports:
-      - "5433:5432" # Expone el puerto de la BD de Docker al puerto 5433 del host
+      - "5433:5432" # Exposes the DB port from Docker to port 5433 on the host
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Volumen persistente para datos de PostgreSQL
-      - ./database/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql # Script para inicializar la BD
-      - ./database/managers.sql:/docker-entrypoint-initdb.d/managers.sql # Script para inicializar la BD
+      - postgres_data:/var/lib/postgresql/data # Persistent volume for PostgreSQL data
+      - ./database/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql # Script to initialize the DB
+      - ./database/managers.sql:/docker-entrypoint-initdb.d/managers.sql # Script to initialize the DB
     environment:
-      POSTGRES_USER: ${DB_USER} # Tomado de .env
-      POSTGRES_PASSWORD: ${DB_PASSWORD} # Tomado de .env
-      POSTGRES_DB: ${DB_NAME} # Tomado de .env
+      POSTGRES_USER: ${DB_USER} # Taken from .env
+      POSTGRES_PASSWORD: ${DB_PASSWORD} # Taken from .env
+      POSTGRES_DB: ${DB_NAME} # Taken from .env
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
@@ -53,7 +53,7 @@ services:
     networks:
       - app_network
 
-  # Servicio de administración de PostgreSQL
+  # PostgreSQL administration service
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: ai_client_agent_pgadmin
@@ -64,18 +64,18 @@ services:
     ports:
       - "${PGADMIN_PORT:-5050}:80"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin # Volumen persistente para datos de pgAdmin
+      - pgadmin_data:/var/lib/pgadmin # Persistent volume for pgAdmin data
     networks:
       - app_network
     depends_on:
       - db
 
-# Definición de volúmenes persistentes
+# Definition of persistent volumes
 volumes:
-  postgres_data: # Almacena los datos de PostgreSQL
-  pgadmin_data: # Almacena los datos de pgAdmin
+  postgres_data: # Stores PostgreSQL data
+  pgadmin_data: # Stores pgAdmin data
 
-# Definición de redes
+# Definition of networks
 networks:
   app_network:
-    driver: bridge # Usa el driver bridge para comunicación entre contenedores 
+    driver: bridge # Uses the bridge driver for container communication 

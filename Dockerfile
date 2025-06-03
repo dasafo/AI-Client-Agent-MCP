@@ -1,35 +1,35 @@
 # Dockerfile
-# Archivo de configuración para crear la imagen de Docker de la aplicación
+# Configuration file to build the Docker image for the application
 
-# Usar una imagen oficial de Python como base
-# Python 3.11-slim proporciona un buen equilibrio entre tamaño y funcionalidad
+# Use an official Python image as the base
+# Python 3.11-slim provides a good balance between size and functionality
 FROM python:3.11-slim
 
-# Establecer el directorio de trabajo en /app dentro del contenedor
-# Todas las operaciones subsiguientes se realizarán desde este directorio
+# Set the working directory to /app inside the container
+# All subsequent operations will be performed from this directory
 WORKDIR /app
 
-# Copiar el archivo de dependencias primero para aprovechar el cache de Docker
-# Esta estrategia permite reutilizar capas cacheadas si requirements.txt no cambia
+# Copy the dependencies file first to leverage Docker cache
+# This strategy allows reusing cached layers if requirements.txt does not change
 COPY requirements.txt .
 
-# Instalar las dependencias
-# --no-cache-dir reduce el tamaño de la imagen al no almacenar archivos temporales de pip
+# Install dependencies
+# --no-cache-dir reduces image size by not storing pip's temp files
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el resto de los archivos de la aplicación al directorio de trabajo /app
-# Solo copiamos los directorios necesarios para la ejecución
+# Copy the rest of the application files to the /app working directory
+# Only copy the necessary directories for execution
 COPY ./backend ./backend
 COPY ./database ./database
-# No copiaremos .env directamente aquí; se manejará a través de docker-compose.
-# Esto mejora la seguridad y flexibilidad, permitiendo diferentes configuraciones por entorno
+# Do not copy .env directly here; it will be handled via docker-compose.
+# This improves security and flexibility, allowing different configurations per environment
 
-# Exponer el puerto en el que corre la aplicación FastAPI (según tu .env es 8000)
-# Esta línea es informativa para documentar qué puerto usa la aplicación,
-# aunque la publicación real del puerto la gestiona docker-compose
+# Expose the port where the FastMCP application runs (according to your .env it's 8000)
+# This line is informative to document which port the application uses,
+# although the actual port publishing is managed by docker-compose
 EXPOSE 8000
 
-# Comando para correr la aplicación ejecutando el script del servidor directamente.
-# Esto permitirá que FastMCP inicie su propio servidor (probablemente Uvicorn) como esté configurado.
-# El módulo backend.server contiene la lógica de inicialización del servidor
+# Command to run the application by executing the server script directly.
+# This will allow FastMCP to start its own server (probably Uvicorn) as configured.
+# The backend.server module contains the server initialization logic
 CMD ["python", "-m", "backend.server"] 

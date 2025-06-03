@@ -6,6 +6,9 @@ import datetime
 
 @pytest.mark.asyncio
 async def test_get_manager_by_name_success():
+    """
+    Test the retrieval of a manager by name.
+    """
     fake_row = {
         'id': 1,
         'name': 'David Salas',
@@ -22,12 +25,18 @@ async def test_get_manager_by_name_success():
 
 @pytest.mark.asyncio
 async def test_get_manager_by_name_not_found():
+    """
+    Test the retrieval of a manager that does not exist.
+    """
     with patch('backend.core.database.Database.fetchrow', new=AsyncMock(return_value=None)):
         result = await manager_service.get_manager_by_name('No Existe')
         assert result is None
 
 @pytest.mark.asyncio
 async def test_get_manager_by_email_success():
+    """
+    Test the retrieval of a manager by email.
+    """
     fake_row = {
         'id': 2,
         'name': 'Ana Ruiz',
@@ -43,6 +52,9 @@ async def test_get_manager_by_email_success():
 
 @pytest.mark.asyncio
 async def test_list_managers_success():
+    """
+    Test the retrieval of all managers.
+    """
     fake_rows = [
         {'id': 1, 'name': 'David Salas', 'email': 'dsf@protonmail.com', 'role': 'boss', 'created_at': datetime.datetime(2024, 1, 1, 12, 0, 0)},
         {'id': 2, 'name': 'Ana Ruiz', 'email': 'ana.ruiz@dasafodata.com', 'role': 'manager', 'created_at': datetime.datetime(2024, 2, 2, 10, 0, 0)}
@@ -55,6 +67,9 @@ async def test_list_managers_success():
 
 @pytest.mark.asyncio
 async def test_list_managers_error():
+    """
+    Test the retrieval of all managers with an error.
+    """
     with patch('backend.core.database.Database.fetch', new=AsyncMock(side_effect=Exception('DB error'))):
         result = await manager_service.list_managers()
         assert result == [] 

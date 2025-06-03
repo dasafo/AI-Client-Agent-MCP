@@ -3,6 +3,9 @@ from typing import Optional
 from datetime import datetime
 
 class ReportOut(BaseModel):
+    """
+    Model to represent a report generated in the database.
+    """
     id: int
     client_id: Optional[int] = None
     client_name: Optional[str] = None

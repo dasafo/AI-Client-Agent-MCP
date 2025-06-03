@@ -32,13 +32,7 @@ class InvoiceUpdate(InvoiceBase):
     Model for updating existing invoices.
     All fields are optional to allow partial updates.
     """
-    # All fields are optional for updates, inherits from InvoiceBase
-    # Specific fields can be optional if they have default values in the DB that shouldn't be overwritten with None
-    client_id: Optional[int] = None
-    amount: Optional[Decimal] = Field(None, max_digits=10, decimal_places=2)
-    issued_at: Optional[date] = None
-    due_date: Optional[date] = None
-    status: Optional[Literal['pending', 'paid', 'canceled']] = None
+    pass
 
 class InvoiceOut(InvoiceBase):
     """
