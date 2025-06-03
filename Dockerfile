@@ -9,13 +9,14 @@ FROM python:3.11-slim
 # All subsequent operations will be performed from this directory
 WORKDIR /app
 
-# Copy the dependencies file first to leverage Docker cache
-# This strategy allows reusing cached layers if requirements.txt does not change
-COPY requirements.txt .
+# Copy only the project configuration files first to leverage Docker cache
+COPY pyproject.toml ./
+COPY README.md ./
+# (Opcional) Si usas poetry.lock, descomenta la siguiente línea:
+# COPY poetry.lock ./
 
-# Install dependencies
-# --no-cache-dir reduces image size by not storing pip's temp files
-RUN pip install --no-cache-dir -r requirements.txt
+# Instala dependencias primero (esto se cachea mientras no cambien los archivos anteriores)
+RUN pip install --no-cache-dir .
 
 # Copy the rest of the application files to the /app working directory
 # Only copy the necessary directories for execution

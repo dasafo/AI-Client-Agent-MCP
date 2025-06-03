@@ -1,0 +1,45 @@
+# This file configures pre-commit hooks that run automatically before each commit
+# to ensure code quality and consistency
+
+repos:
+# Basic file checks and validations
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: trailing-whitespace    # Removes trailing whitespace at the end of lines
+    -   id: end-of-file-fixer      # Ensures files end with a newline
+    -   id: check-yaml             # Validates YAML syntax
+    -   id: check-added-large-files # Prevents committing large files
+    -   id: check-ast              # Verifies Python syntax
+    -   id: check-json             # Validates JSON syntax
+    -   id: check-merge-conflict   # Detects unresolved merge conflicts
+    -   id: detect-private-key     # Prevents committing private keys
+
+# Code formatting with Black
+-   repo: https://github.com/psf/black
+    rev: 23.9.1
+    hooks:
+    -   id: black
+        language_version: python3.11  # Specifies Python version for formatting
+
+# Import sorting with isort
+-   repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+    -   id: isort
+        args: ["--profile", "black"]  # Configures isort to be compatible with Black
+
+# Fast Python linter (Ruff)
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.0
+    hooks:
+    -   id: ruff
+        args: [--fix, --exit-non-zero-on-fix]  # Automatically fixes issues and fails if fixes are applied
+
+# Static type checking with MyPy
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.5.1
+    hooks:
+    -   id: mypy
+        additional_dependencies: [types-all]  # Includes type stubs for common packages
+        args: [--ignore-missing-imports]      # Ignores missing type hints in imported modules 

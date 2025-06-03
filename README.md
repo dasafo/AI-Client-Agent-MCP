@@ -20,188 +20,38 @@
 
 Perfect for organizations seeking to automate client management, invoicing, and reporting—integrating artificial intelligence and modern workflows into their daily operations.
 
-## 📚 Documentation
+## 📚 Table of Contents
 
-- [Quick Start Guide](docs/quickstart.md): Step-by-step setup and development instructions
-- [Database Patterns](docs/database_patterns.md): Database connection and transaction management
-- [Full Documentation Index](docs/index.md): All docs, guides, and references
-
-## 🔧 Architecture Overview
-
-Below is a simple architecture diagram illustrating the main components and their interactions:
-
-```
-+-------------------+         +-------------------+         +-------------------+
-| Conversational AI | <-----> | FastMCP (API/Tool)| <-----> | PostgreSQL DB     |
-| Agent / Client    |  HTTP   | Backend (FastMCP) |  async  | (asyncpg)         |
-+-------------------+         +-------------------+         +-------------------+
-```
-
-- **Conversational AI Agent**: Can be an agent, script, or user using an MCP client (e.g., Cursor IDE).
-- **FastMCP Backend**: Exposes tools (endpoints) for client and invoice management.
-- **PostgreSQL DB**: Stores all data, accessed asynchronously.
-
-## 🎯 Core Features
-
-*   👤 **Comprehensive Client Management**: CRUD operations for client profiles.
-*   📄 **Invoice/Quote Administration**: Full CRUD operations for invoices, linked to clients, including status management (`pending`, `completed`, `canceled`).
-*   🚀 **Asynchronous Performance**: Leverages `asyncio` and `asyncpg` for efficient, non-blocking database operations.
-*   🛡️ **Rigorous Data Validation**: Employs Pydantic models to ensure data integrity across all interactions.
-*   🤖 **MCP Tool Interface**: Exposes business logic through a set of tools for the Master Control Program (FastMCP), facilitating integration with AI agents and automated systems.
-*   🐳 **Complete Dockerized Environment**: Includes the application, PostgreSQL database, and pgAdmin 4, all managed with Docker Compose for consistent and straightforward setup and execution.
-*   ⚙️ **Flexible Configuration**: Environment variables for easy adaptation to different database setups and ports.
-*   🧪 **Extensive Test Coverage**: Comprehensive test suite with database isolation and proper connection management.
-*   💉 **Dependency Injection**: Services designed with dependency injection patterns to facilitate testing and flexibility.
-*   🧠 **Built-in AI Development**: Adding a `.cursor` directory enables AI-assisted coding directly within the project.
-
-## 🚀 Quick Start (with Docker)
-
-This is the recommended way to set up and run the project.
-
-### Prerequisites
-*   [Docker](https://www.docker.com/get-started) installed.
-*   Docker Compose (usually included with Docker Desktop; for Linux, install the `docker-compose-plugin`).
-
-### Installation
-
-```bash
-# 1. Clone the repository (if you haven't already)
-git clone <repository_url>
-cd AI-Client-Agent-MCP
-
-# 2. Configure environment variables
-cp env.example .env 
-# Edit .env with your configurations (see example below)
-nano .env #(or your preferred editor)
-
-# 3. Start all services
-docker compose up --build
-```
-
-### Essential Environment Variables (`.env`)
-
-Your `.env` file should contain at least the following:
-
-```env
-# PostgreSQL Database Configuration
-DB_USER=db_user
-DB_PASSWORD=db_password
-DB_NAME=AI-Agent-ddbb
-DB_PORT=5432 # Internal port for PostgreSQL in its container
-
-# Application Server Configuration
-SERVER_PORT=8000 # Port on localhost to access the MCP server
-
-# pgAdmin 4 Configuration
-PGADMIN_EMAIL=admin@example.com # Email for pgAdmin web interface login
-PGADMIN_PASSWORD=admin          # Password for pgAdmin login
-PGADMIN_PORT=5050         # Port on localhost to access pgAdmin
-```
-*Note: `DB_HOST` and `SERVER_HOST` are managed by Docker Compose for inter-container communication and host exposure.* 
-
-### Accessing Services
-
-*   **MCP Server (AI Client Agent MCP)**: Connect via an MCP client (e.g., Cursor IDE) to the agent, which internally uses the services. The `server.py` runs on `http://localhost:${SERVER_PORT}` but is primarily for FastMCP's internal communication, not direct HTTP REST access.
-*   **pgAdmin 4**: `http://localhost:${PGADMIN_PORT}` (e.g., `http://localhost:5050`)
-    *   **pgAdmin Login**: Use `PGADMIN_EMAIL` and `PGADMIN_PASSWORD`.
-    *   **Connect to Project DB from pgAdmin**:
-        *   Host: `db` (Docker service name)
-        *   Port: `5432` (PostgreSQL's internal port)
-        *   Database: Your `DB_NAME`
-        *   Username: Your `DB_USER`
-        *   Password: Your `DB_PASSWORD`
-
-### Useful Docker Compose Commands
-
-```bash
-# Start services (and build if necessary)
-docker compose up --build
-# Stop services
-docker compose down
-# View real-time logs from services
-docker compose logs -f
-# Check container status
-docker compose ps
-# Access a container's shell (e.g., the app)
-docker compose exec app /bin/sh
-# Access psql in the DB container
-docker compose exec db psql -U ${DB_USER} -d ${DB_NAME}
-```
-
-## ⚙️ Local Development (Non-Docker Alternative)
-
-For development or specific debugging scenarios outside Docker:
-
-### Prerequisites
-*   Python 3.11 (or the version in `Dockerfile`).
-*   Locally accessible PostgreSQL server.
-
-### Steps
-1.  **Virtual Environment & Dependencies**: `python -m venv .venv`, `source .venv/bin/activate`, `pip install -r requirements.txt`.
-2.  **Configure `.env`**: Ensure `DB_HOST` and `DB_PORT` point to your local PostgreSQL instance.
-3.  **Manual Database Setup**: Create the database (`DB_NAME`) and run `psql -U ${DB_USER} -d ${DB_NAME} -a -f database/create_tables.sql`. Also run `psql -U ${DB_USER} -d ${DB_NAME} -a -f database/managers.sql` if you intend to use the reporting tool.
-4.  **Run Application**: `python -m backend.server`.
-
-## 🛠️ MCP Tools
-
-The application exposes its functionality through FastMCP tools. An MCP client (like Cursor IDE or a custom script using the `fastmcp` library) can connect to the server and invoke them.
-
-### Client Tools
-*   `list_clients`: Lists all clients.
-*   `get_client(client_id: int)`: Retrieves a specific client.
-*   `create_client(name: str, city: Optional[str], email: Optional[str])`: Creates a new client.
-*   `update_client(client_id: int, name: Optional[str], city: Optional[str], email: Optional[str])`: Updates a client.
-*   `delete_client(client_id: int)`: Deletes a client.
-
-### Invoice Tools
-*   `list_invoices`: Lists all invoices.
-*   `get_invoice(invoice_id: int)`: Retrieves a specific invoice.
-*   `list_client_invoices(client_id: int)`: Lists all invoices for a specific client.
-*   `create_invoice(client_id: int, amount: str, issued_at: Optional[str], due_date: Optional[str], status: Optional[str])`: Creates an invoice. (Valid statuses: `pending`, `completed`, `canceled`)
-*   `update_invoice(invoice_id: int, client_id: Optional[str], amount: Optional[str], issued_at: Optional[str], due_date: Optional[str], status: Optional[str])`: Updates an invoice.
-*   `delete_invoice(invoice_id: int)`: Deletes an invoice.
-
-*Note: For date fields (`issued_at`, `due_date`), use ISO format (YYYY-MM-DD).* 
-
-## 💡 Use Cases / Application Ideas
-
-The `AI Client Agent MCP` can serve as a foundation for various automated systems:
-
-*   **AI-Powered CRM**: An AI agent could use the FastMCP tools to create and update clients based on email or chat interactions and draft invoices.
-*   **Customer Support with Account Management**: Integrate with a ticketing system where an AI agent can query client information and recent invoices for more contextualized responses using FastMCP tools.
-*   **Semi-Automated Billing Tool**: A simple interface (or bot) allowing non-technical users to request invoice creation for existing clients, with an AI agent validating or completing data via FastMCP tools.
-*   **AI-Assisted Data Migration**: Use an agent to read data from a legacy system and utilize the `create_client` and `create_invoice` FastMCP tools to populate this new system.
-
-## 💬 Conversational Agent Example
-
-Here is an example of how a user or AI agent can interact with the system using natural language or structured tool calls:
-
-### Natural Language Request
-
-> "Give me a detailed report of all completed quotes for client Carolina Padilla and send it to David Salas."
-
-### Structured Tool Call (Python)
-
-```python
-# Using an MCP client or script
-response = generate_report(
-    client_name="Carolina Padilla",
-    period="",  # empty for all dates
-    manager_name="David Salas",
-    manager_email="dsf@protonmail.com",
-    report_type="detailed, only completed",
-    api_token="changeme-token-dev"  # Must match REPORT_API_TOKEN
-)
-print(response)
-```
-
-### Example System Response
-
-```
-Report sent to David Salas <d.salasforns@gmail.com>
-```
-
-The generated report will include a note at the end indicating the authorized recipient.
+- [🗂️ AI Client Agent MCP](#️-ai-client-agent-mcp)
+  - [📚 Table of Contents](#-table-of-contents)
+  - [📂 Project Structure](#-project-structure)
+  - [🛠️ Requirements and Tools](#️-requirements-and-tools)
+    - [Prerequisites](#prerequisites)
+    - [Development Tools](#development-tools)
+  - [🚀 Installation and Setup](#-installation-and-setup)
+    - [Docker Installation (Recommended)](#docker-installation-recommended)
+    - [Local Installation with Poetry](#local-installation-with-poetry)
+    - [Local Installation with pip](#local-installation-with-pip)
+  - [💻 Usage and Execution](#-usage-and-execution)
+    - [Accessing Services](#accessing-services)
+    - [Useful Docker Commands](#useful-docker-commands)
+  - [🧪 Testing and Code Quality](#-testing-and-code-quality)
+    - [Running Tests](#running-tests)
+    - [Code Quality Checks](#code-quality-checks)
+  - [📚 Documentation and References](#-documentation-and-references)
+    - [MCP Tools](#mcp-tools)
+      - [Client Tools](#client-tools)
+      - [Invoice Tools](#invoice-tools)
+  - [💡 Use Cases and Examples](#-use-cases-and-examples)
+    - [Example Interaction](#example-interaction)
+      - [Natural Language Request](#natural-language-request)
+      - [Structured Tool Call](#structured-tool-call)
+  - [⚠️ Security, Limitations and Roadmap](#️-security-limitations-and-roadmap)
+    - [Security Notes](#security-notes)
+    - [Current Limitations](#current-limitations)
+    - [Future Improvements](#future-improvements)
+  - [🤝 Contributing and License](#-contributing-and-license)
+  - [👤 Author and Contact](#-author-and-contact)
 
 ## 📂 Project Structure
 
@@ -213,6 +63,7 @@ The generated report will include a note at the end indicating the authorized re
 ├── docker-compose.yml  # Docker services orchestration (app, db, pgadmin)
 ├── .cursor/            # Optional directory for Cursor IDE integration as an MCP 
 │   └── ...             # This can be used to create AI-assisted prompts, workflows, and tools
+├── pyproject.toml      # Project configuration and dependencies
 ├── backend/
 │   ├── __init__.py
 │   ├── server.py         # Entrypoint: FastMCP server runner
@@ -238,10 +89,8 @@ The generated report will include a note at the end indicating the authorized re
 │   ├── create_tables.sql # SQL script to initialize DB schema (used by Docker)
 │   └── managers.sql      # SQL script to create and populate the managers table
 ├── app_logs/             # Directory for application logs (created by Docker if mapped)
-├── requirements.txt      # Python project dependencies
 ├── README.md             # This file
 ├── env.example           # Template for the .env file
-├── pytest.ini            # Configuration for pytest and pytest-asyncio
 └── tests/                # Test suite (configured with Pytest)
     ├── .env.test         # Environment variables for tests
     ├── conftest.py       # Pytest fixtures and configuration
@@ -252,65 +101,209 @@ The generated report will include a note at the end indicating the authorized re
         └── test_invoice_services.py # Tests for invoice service functions
 ```
 
-## 🗂️ Report History
+## 🛠️ Requirements and Tools
 
-All generated reports are stored in the `reports` table with the following fields:
-- client_id, client_name (nullable for global reports)
-- period (nullable)
-- manager_email, manager_name
-- report_type
-- report_text (full report content)
-- created_at
+### Prerequisites
+*   Python 3.11 or higher
+*   [Poetry](https://python-poetry.org/) (recommended) or pip
+*   PostgreSQL 15 or higher
+*   [Docker](https://www.docker.com/get-started) and Docker Compose
 
-You can query the report history from the database or create a tool for this purpose.
+### Development Tools
+The project uses several tools to maintain code quality, all configured in `pyproject.toml`:
 
-## ⚠️ Security and Validation
+*   **Black**: Code formatting
+*   **isort**: Import sorting
+*   **Ruff**: Fast Python linter
+*   **MyPy**: Static type checking
+*   **pre-commit**: Git hooks for code quality
 
-- Only managers registered in the `managers` table can receive reports.
-- The system always validates the recipient before sending any information.
-- The recipient must be explicitly indicated in each request.
-- The report and system response always show to whom it was sent.
+These tools are configured in:
+- `pyproject.toml`: Main configuration for all tools and dependencies
+- `.pre-commit-config.yaml`: Git hooks configuration
 
-## 🧪 Testing
+## 🚀 Installation and Setup
 
-The project is configured with `pytest` and includes comprehensive integration tests for services.
+### Docker Installation (Recommended)
 
-*   **Test Database Lifecycle**: 
-    *   A separate test database (e.g., `ai_client_mcp_db_test` as configured in `tests/.env.test`) is automatically created if it doesn't exist before tests run.
-    *   The schema from `database/create_tables.sql` is applied to this test database.
-    *   Each test runs within its own database transaction, which is rolled back after the test completes, ensuring test isolation.
-    *   The entire test database is automatically dropped after all tests in the session have finished.
-    *   This lifecycle is managed by fixtures in `tests/conftest.py`.
-*   **Service Architecture**:
-    *   Service functions are designed with dependency injection, accepting an optional database connection parameter.
-    *   This pattern allows tests to pass a controlled connection with transaction management.
-    *   Makes it easy to test database operations with proper isolation.
-*   **Test Environment Configuration**: The `tests/.env.test` file is used to configure the test database connection details, overriding any main `.env` settings for testing purposes.
-*   **Fixtures**: `tests/conftest.py` contains crucial fixtures for managing the database connections, transactions, and the overall test database lifecycle.
-*   **Run Tests**: From the project root (with the virtual environment activated, if not using Docker for testing):
-    ```bash
-    # Run all tests
-    pytest
-    
-    # Run with verbose output
-    pytest -v
-    
-    # Run only client service tests
-    pytest tests/integration/test_client_services.py
-    
-    # Run only invoice service tests
-    pytest tests/integration/test_invoice_services.py
-    ```
+```bash
+# 1. Clone the repository
+git clone <repository_url>
+cd AI-Client-Agent-MCP
 
-## 🤝 Contributing
+# 2. Configure environment variables
+cp env.example .env 
+# Edit .env with your configurations
+nano .env #(or your preferred editor)
 
-Contributions are welcome. Please follow standard development practices (fork, branch, PR) and consider adding tests for new features.
+# 3. Start all services
+docker compose up --build
+```
 
-## 📄 License
+### Local Installation with Poetry
 
-This project is licensed under the [MIT License](LICENSE). See the LICENSE file for the full legal text and terms of use.
+```bash
+# Install dependencies
+poetry install
 
-## 👤 Author
+# Activate virtual environment
+poetry shell
+
+# Install pre-commit hooks
+pre-commit install
+```
+
+### Local Installation with pip
+
+```bash
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies using pip and pyproject.toml
+pip install .
+
+# Install pre-commit hooks
+pre-commit install
+```
+
+## 💻 Usage and Execution
+
+### Accessing Services
+
+*   **MCP Server**: Connect via an MCP client (e.g., Cursor IDE) to the agent
+*   **pgAdmin 4**: `http://localhost:${PGADMIN_PORT:-5050}`
+    *   Login with `PGADMIN_EMAIL` and `PGADMIN_PASSWORD`
+    *   Connect to DB using:
+        *   Host: `db`
+        *   Port: `5432`
+        *   Database: Your `DB_NAME`
+        *   Username: Your `DB_USER`
+        *   Password: Your `DB_PASSWORD`
+
+### Useful Docker Commands
+
+```bash
+# Start services
+docker compose up --build
+
+# Stop services
+docker compose down
+
+# View logs
+docker compose logs -f
+
+# Check status
+docker compose ps
+
+# Access app shell
+docker compose exec app /bin/sh
+
+# Access DB shell
+docker compose exec db psql -U ${DB_USER} -d ${DB_NAME}
+```
+
+## 🧪 Testing and Code Quality
+
+### Running Tests
+
+```bash
+# Run all tests with coverage
+pytest
+
+# Run specific test file
+pytest tests/unit/test_generate_report.py
+
+# Run tests with specific marker
+pytest -m "integration"
+```
+
+### Code Quality Checks
+
+```bash
+# Format code
+black .
+
+# Sort imports
+isort .
+
+# Run linter
+ruff check .
+
+# Type checking
+mypy .
+```
+
+## 📚 Documentation and References
+
+### MCP Tools
+
+The application exposes its functionality through FastMCP tools:
+
+#### Client Tools
+*   `list_clients`: Lists all clients
+*   `get_client(client_id: int)`: Retrieves a specific client
+*   `create_client(name: str, city: Optional[str], email: Optional[str])`: Creates a new client
+*   `update_client(client_id: int, name: Optional[str], city: Optional[str], email: Optional[str])`: Updates a client
+*   `delete_client(client_id: int)`: Deletes a client
+
+#### Invoice Tools
+*   `list_invoices`: Lists all invoices
+*   `get_invoice(invoice_id: int)`: Retrieves a specific invoice
+*   `list_client_invoices(client_id: int)`: Lists all invoices for a specific client
+*   `create_invoice(client_id: int, amount: str, issued_at: Optional[str], due_date: Optional[str], status: Optional[str])`: Creates an invoice
+*   `update_invoice(invoice_id: int, client_id: Optional[str], amount: Optional[str], issued_at: Optional[str], due_date: Optional[str], status: Optional[str])`: Updates an invoice
+*   `delete_invoice(invoice_id: int)`: Deletes an invoice
+
+## 💡 Use Cases and Examples
+
+### Example Interaction
+
+#### Natural Language Request
+> "Give me a detailed report of all completed quotes for client Carolina Padilla and send it to David Salas."
+
+#### Structured Tool Call
+```python
+response = generate_report(
+    client_name="Carolina Padilla",
+    period="",  # empty for all dates
+    manager_name="David Salas",
+    manager_email="dsf@protonmail.com",
+    report_type="detailed, only completed",
+    api_token="changeme-token-dev"  # Must match REPORT_API_TOKEN
+)
+```
+
+## ⚠️ Security, Limitations and Roadmap
+
+### Security Notes
+- Only managers registered in the `managers` table can receive reports
+- The system validates the recipient before sending any information
+- The recipient must be explicitly indicated in each request
+- Reports always show to whom they were sent
+
+### Current Limitations
+- No configurable state transitions for invoices
+- No detailed audit logs for invoice modifications
+- Manual schema changes require database recreation
+
+### Future Improvements
+- Implement state transition logic
+- Add audit logging
+- Integrate migration tools (e.g., Alembic)
+
+## 🤝 Contributing and License
+
+Contributions are welcome! Please follow these steps:
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+This project is licensed under the [MIT License](LICENSE).
+
+## 👤 Author and Contact
 
 **David Salas**
 - Website: [dasafodata.com](https://dasafodata.com)
@@ -320,43 +313,3 @@ This project is licensed under the [MIT License](LICENSE). See the LICENSE file 
 <p align="center">
   <sub>Created with ❤️ by David Salas - dasafodata</sub>
 </p>
-
-## ⚠️ Important Notes
-
-> **Warning:** The sample data included in initialization scripts (e.g., `create_tables.sql` and `managers.sql`) is intended for development environments only. Do not use in production environments.
->
-> **Database Migrations:** Currently, schema changes require manual modification of SQL files and database recreation. For growing projects, it is recommended to integrate a migration tool like Alembic to facilitate safe and controlled schema evolution.
->
-> **Managers Table Source of Truth:** The `managers` table definition should be maintained only in `database/managers.sql`. Avoid duplicating the table creation logic in Python scripts to prevent inconsistencies.
-
-## 🚧 Limitations & Roadmap
-
-Some features mentioned in the blog or documentation (such as "configurable state transitions" for invoices or "detailed audit logs" for invoice modifications) are not yet implemented in the current codebase. For example:
-- There is no logic enforcing allowed status transitions (e.g., only allowing 'pending' → 'paid').
-- There is no separate audit log for invoice changes; only the current status is stored.
-
-These are ideas for future work and not present in the current implementation. The documentation and blog may reference them as potential improvements or portfolio vision, but they are not available yet. This is clarified to avoid false expectations for technical readers.
-
-## 🔗 Technology References
-
-- **FastMCP**: This project uses [FastMCP](https://github.com/dasafo/fastmcp) version 2.5.1 (see `requirements.txt`). FastMCP is a framework for exposing business logic as tools for AI agents and automation.
-- **OpenAI Model**: The report generation uses the GPT-4 (or GPT-4o) model via the OpenAI API. You can configure the model version in the backend as needed.
-
-### Security for Report Generation
-
-The `generate_report` tool now requires an API token for every request. This token must be provided as the `api_token` parameter and must match the value set in the `REPORT_API_TOKEN` environment variable. This prevents unauthorized or anonymous access to sensitive report data, even if the MCP interface is exposed.
-
-Example usage:
-
-```python
-response = generate_report(
-    client_name="Carolina Padilla",
-    period="",
-    manager_name="David Salas",
-    manager_email="dsf@protonmail.com",
-    report_type="detailed, only completed",
-    api_token="changeme-token-dev"  # Must match REPORT_API_TOKEN
-)
-```
-
-If the token is missing or invalid, the tool will return an error and will not generate or send the report.

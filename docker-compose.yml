@@ -14,6 +14,8 @@ services:
     volumes:
       - ./backend:/app/backend # Live development mount
       - ./app_logs:/app/logs   # Maps a local directory for app logs
+      - ./pyproject.toml:/app/pyproject.toml:ro # Mount pyproject.toml as read-only
+      - ./README.md:/app/README.md:ro # Mount README.md as read-only
     env_file:
       - .env # Loads all variables from .env
     environment:
