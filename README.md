@@ -43,7 +43,7 @@ Below is a simple architecture diagram illustrating the main components and thei
 
 ## 🎯 Core Features
 
-*   👤 **Comprehensive Client Management**: CRUD (Create, Read, Update, Delete) operations for client profiles.
+*   👤 **Comprehensive Client Management**: CRUD operations for client profiles.
 *   📄 **Invoice/Quote Administration**: Full CRUD operations for invoices, linked to clients, including status management (`pending`, `completed`, `canceled`).
 *   🚀 **Asynchronous Performance**: Leverages `asyncio` and `asyncpg` for efficient, non-blocking database operations.
 *   🛡️ **Rigorous Data Validation**: Employs Pydantic models to ensure data integrity across all interactions.
@@ -321,11 +321,13 @@ This project is licensed under the [MIT License](LICENSE). See the LICENSE file 
   <sub>Created with ❤️ by David Salas - dasafodata</sub>
 </p>
 
-> ⚠️ **Advertencia:** Los datos de ejemplo incluidos en los scripts de inicialización (por ejemplo, `create_tables.sql` y `managers.sql`) están pensados únicamente para entornos de desarrollo. No deben utilizarse en entornos de producción.
+## ⚠️ Important Notes
+
+> **Warning:** The sample data included in initialization scripts (e.g., `create_tables.sql` and `managers.sql`) is intended for development environments only. Do not use in production environments.
 >
-> **Migraciones de base de datos:** Actualmente, los cambios en el esquema requieren modificar los archivos SQL manualmente y recrear la base de datos. Para proyectos en crecimiento, se recomienda integrar una herramienta de migraciones como Alembic para facilitar la evolución del esquema de forma segura y controlada.
+> **Database Migrations:** Currently, schema changes require manual modification of SQL files and database recreation. For growing projects, it is recommended to integrate a migration tool like Alembic to facilitate safe and controlled schema evolution.
 >
-> **Fuente de verdad de la tabla managers:** La definición de la tabla `managers` debe mantenerse únicamente en el archivo `database/managers.sql`. Evita duplicar la lógica de creación de esta tabla en scripts Python para prevenir inconsistencias.
+> **Managers Table Source of Truth:** The `managers` table definition should be maintained only in `database/managers.sql`. Avoid duplicating the table creation logic in Python scripts to prevent inconsistencies.
 
 ## 🚧 Limitations & Roadmap
 
@@ -334,10 +336,6 @@ Some features mentioned in the blog or documentation (such as "configurable stat
 - There is no separate audit log for invoice changes; only the current status is stored.
 
 These are ideas for future work and not present in the current implementation. The documentation and blog may reference them as potential improvements or portfolio vision, but they are not available yet. This is clarified to avoid false expectations for technical readers.
-
-## 🌐 Language Consistency
-
-This repository currently mixes English and Spanish in documentation and code comments. For global consistency, it is recommended to unify all documentation and code comments in English. Alternatively, a bilingual README can be provided.
 
 ## 🔗 Technology References
 
