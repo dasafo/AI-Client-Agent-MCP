@@ -2,19 +2,19 @@ import asyncpg
 
 async def save_report(conn, client_id, client_name, period, manager_email, manager_name, report_type, report_text):
     """
-    Guarda un informe en la base de datos.
+    Saves a report in the database.
 
     Args:
-        conn: Conexión activa a la base de datos.
-        client_id: ID del cliente asociado (puede ser None).
-        client_name: Nombre del cliente (puede ser None).
-        period: Periodo del informe (puede ser None).
-        manager_email: Email del manager destinatario.
-        manager_name: Nombre del manager destinatario.
-        report_type: Tipo de informe.
-        report_text: Texto HTML del informe generado.
+        conn: Active database connection.
+        client_id: Associated client ID (can be None).
+        client_name: Client name (can be None).
+        period: Report period (can be None).
+        manager_email: Recipient manager's email.
+        manager_name: Recipient manager's name.
+        report_type: Report type.
+        report_text: Generated HTML report text.
     Returns:
-        Diccionario con success True/False y error si aplica.
+        Dictionary with success True/False and error if applicable.
     """
     try:
         await conn.execute(
@@ -32,12 +32,12 @@ async def save_report(conn, client_id, client_name, period, manager_email, manag
 
 async def get_client_by_name(name: str, conn=None):
     """
-    Busca un cliente por nombre exacto (case-insensitive).
+    Searches for a client by exact name (case-insensitive).
     Args:
-        name: Nombre del cliente a buscar.
-        conn: Conexión opcional a la base de datos.
+        name: Name of the client to search for.
+        conn: Optional database connection.
     Returns:
-        Diccionario con los datos del cliente o None si no se encuentra.
+        Dictionary with client data or None if not found.
     """
     if conn is not None:
         row = await conn.fetchrow(
@@ -56,11 +56,11 @@ async def get_client_by_name(name: str, conn=None):
 
 def filter_invoices_by_period(invoices, period):
     """
-    Filtra una lista de facturas por periodo (año, mes, etc.) en el campo issued_at.
+    Filters a list of invoices by period (year, month, etc.) in the issued_at field.
     Args:
-        invoices: Lista de diccionarios de facturas.
-        period: Cadena a buscar en issued_at (por ejemplo, '2024').
+        invoices: List of invoice dictionaries.
+        period: String to search for in issued_at (e.g., '2024').
     Returns:
-        Lista filtrada de facturas.
+        Filtered list of invoices.
     """
     return [i for i in invoices if period in str(i.get('issued_at', ''))] 
