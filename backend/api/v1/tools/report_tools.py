@@ -16,6 +16,7 @@ from backend.core.config import SMTP_USER, SMTP_HOST, SMTP_PORT, SMTP_PASS, OPEN
 from backend.core.logging import get_logger
 from backend.models.report import ReportOut
 import bleach
+import asyncio
 
 logger = get_logger(__name__)
 
@@ -58,7 +59,7 @@ def generate_invoice_status_chart(invoices):
     Generates a chart of invoice statuses.
     """
     # Count invoices by status
-    estados = ['completed', 'pending', 'canceled']
+    estados = ['paid', 'pending', 'canceled']
     counts = [len([i for i in invoices if i['status'] == estado]) for estado in estados]
     # Create chart
     fig, ax = plt.subplots()
